@@ -8,7 +8,7 @@ let user = {
     xp: 0,
     level: 1,
     achievements: [],
-    avatar: 'default-avatar.webp',
+    avatar: 'default-avatar',
     lastActivityDate: null,
     currentStreak: 0,
     longestStreak: 0
@@ -46,6 +46,15 @@ document.addEventListener("DOMContentLoaded", function() {
         settingsBtn.addEventListener('click', showSettingsMenu);
     } else {
         console.error('Settings button not found');
+    }
+
+    const homeBtn = document.getElementById('homeBtn');
+    if (homeBtn) {
+        homeBtn.addEventListener('click', () => {
+            window.location.href = '../index.html';
+        });
+    } else {
+        console.error('Home button not found');
     }
 
     const sidebarToggle = document.getElementById('sidebarToggle');
@@ -93,8 +102,6 @@ function showSettingsMenu() {
     const settingsMenu = createModal('Settings', `
         <ul class="settings-menu">
             <li><button id="editProfileBtn" class="settings-option">Edit Profile</button></li>
-            <li><button id="changePasswordBtn" class="settings-option">Change Password</button></li>
-            <li><button id="privacySettingsBtn" class="settings-option">Privacy Settings</button></li>
             <li><button id="debugOptionsBtn" class="settings-option">Debug Options</button></li>
         </ul>
     `);
@@ -199,7 +206,7 @@ mainContent.innerHTML = `
         <div class="hero-content">
             <div class="user-info">
                 <div class="avatar-frame">
-                    <img src="${user.avatar || 'default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
+                    <img src="${user.avatar || '../public/default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
                 </div>
                 <div class="user-details">
                     <h2 id="userName">${user.name}</h2>
@@ -1298,9 +1305,9 @@ function updateUserInfoDisplay() {
     if (userLevelElement) userLevelElement.textContent = 'Level ' + user.level;
     
     if (avatarImg) {
-        avatarImg.src = user.avatar || 'default-avatar.webp';
+        avatarImg.src = user.avatar || '../public/default-avatar.webp';
         avatarImg.onerror = function() {
-            this.src = 'default-avatar.webp';
+            this.src = '../public/default-avatar.webp';
         };
     }
     

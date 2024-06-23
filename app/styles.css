@@ -254,7 +254,7 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 }
 
 .hero-section {
-    background-image: linear-gradient(to right, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.25)), url('hero-background.webp');
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.25)), url('../public/hero-background.webp');
     background-size: cover;
     background-position: center;
     border-radius: 15px;
@@ -1026,14 +1026,25 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 }
 
 @media (min-width: 1200px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr 1fr 1fr;
+    .stats-overview, .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .stat-card, .dashboard-card {
+        width: 100%;
     }
 }
 
 @media (max-width: 1199px) and (min-width: 768px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr 1fr;
+    .stats-overview, .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
     }
     .active-quests {
         grid-column: span 2;

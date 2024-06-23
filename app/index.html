@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill Quest - Embark on Your Adventure</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="header">
+                <img src="../public/skills-quest-logo.png" alt="Skill Quest Logo" class="logo">
+            </div>
+            <nav class="main-nav">
+                <button class="nav-btn active" data-section="overview"><i class="fas fa-home"></i> Character Sheet</button>
+                <button class="nav-btn" data-section="skills"><i class="fas fa-book-open"></i> Skills</button>
+                <button class="nav-btn" data-section="activities"><i class="fas fa-tasks"></i> Activities</button>
+                <button class="nav-btn" data-section="quests"><i class="fas fa-map-marked-alt"></i> Quests</button>
+                <button class="nav-btn" data-section="rewards"><i class="fas fa-trophy"></i> Milestones</button>
+            </nav>
+            <div class="sidebar-actions">
+                <button id="homeBtn" class="icon-btn" title="Home"><i class="fas fa-home"></i></button>
+                <button id="settingsBtn" class="icon-btn" title="Settings"><i class="fas fa-cog"></i></button>
+                <p>Version 0.4.6</p>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <section id="mainContent">
+                <!-- This will be dynamically filled based on the selected section -->
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

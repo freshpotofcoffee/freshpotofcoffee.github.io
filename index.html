@@ -3,39 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skill Quest - Embark on Your Adventure</title>
+    <title>Welcome to Skill Quest</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="public/landing-styles.css">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
-    <div class="app-container">
-        <aside class="sidebar">
-            <div class="header">
-                <img src="skills-quest-logo.png" alt="Skill Quest Logo" class="logo">
+    <header>
+        <nav>
+            <div class="logo">
+                <img src="public/skills-quest-logo.png" alt="Skill Quest Logo">
+                <h1>Skill Quest</h1>
             </div>
-            <nav class="main-nav">
-                <button class="nav-btn active" data-section="overview"><i class="fas fa-home"></i> Character Sheet</button>
-                <button class="nav-btn" data-section="skills"><i class="fas fa-book-open"></i> Skills</button>
-                <button class="nav-btn" data-section="activities"><i class="fas fa-tasks"></i> Activities</button>
-                <button class="nav-btn" data-section="quests"><i class="fas fa-map-marked-alt"></i> Quests</button>
-                <button class="nav-btn" data-section="rewards"><i class="fas fa-trophy"></i> Milestones</button>
-            </nav>
-            <div class="sidebar-actions">
-                <button id="notificationsBtn" class="icon-btn" title="Notifications"><i class="fas fa-bell"></i></button>
-                <button id="settingsBtn" class="icon-btn" title="Settings"><i class="fas fa-cog"></i></button>
-                <p>Version 0.4.5</p>
+            <ul>
+                <li><a href="#about">About</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="app/index.html" class="cta-button">Get Started</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero">
+            <h2>Embark on Your Personal Development Journey</h2>
+            <p>Level up your skills, complete quests, and achieve your goals with Skill Quest</p>
+            <a href="app/index.html" class="cta-button">Start Your Quest</a>
+        </section>
+
+        <section id="about">
+            <h2>About Skill Quest</h2>
+            <p>Skill Quest is an innovative app designed to gamify your personal development journey. Track your progress, set goals, and watch yourself grow in a fun, engaging way.</p>
+        </section>
+
+        <section id="features">
+            <h2>Features</h2>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <i class="fas fa-tasks"></i>
+                    <h3>Skill Tracking</h3>
+                    <p>Monitor and level up your skills as you progress</p>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <h3>Quests</h3>
+                    <p>Complete quests to challenge yourself and earn rewards</p>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Progress Visualization</h3>
+                    <p>See your growth with intuitive charts and statistics</p>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-trophy"></i>
+                    <h3>Achievements</h3>
+                    <p>Unlock achievements as you reach milestones</p>
+                </div>
             </div>
-        </aside>
+        </section>
+    </main>
 
-        <main class="main-content">
-            <section id="mainContent">
-                <!-- This will be dynamically filled based on the selected section -->
-            </section>
-        </main>
-    </div>
-
-    <script src="app.js"></script>
+    <footer>
+        <p>&copy; 2024 Skill Quest. All rights reserved.</p>
+    </footer>
 </body>
 </html>
