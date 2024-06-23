@@ -1276,6 +1276,29 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     }
 }
 
+@media (max-width: 768px) {
+    .introjs-tooltip {
+        max-width: 90%;
+        min-width: auto;
+    }
+
+    .introjs-tooltiptext {
+        font-size: 14px;
+    }
+
+    .introjs-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 12px;
+    }
+
+    .introjs-helperNumberLayer {
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        line-height: 20px;
+    }
+}
+
 @media (min-width: 1200px) {
     .stats-overview, .dashboard-grid {
         display: grid;

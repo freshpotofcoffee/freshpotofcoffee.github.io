@@ -133,33 +133,82 @@ if (!localStorage.getItem('walkthroughCompleted')) {
 }
 
 function startWalkthrough() {
+    const isMobile = window.innerWidth <= 768;
     const steps = [
-        { 
-            element: '.nav-btn[data-section="skills"]', 
+        {
+            element: '#userAvatar',
+            intro: 'This is your character profile. Watch your level increase as you complete activities and quests!',
+            position: 'bottom'
+        },
+        {
+            element: '.xp-bar',
+            intro: 'This bar shows your progress towards the next level. Complete activities to fill it up!',
+            position: 'bottom'
+        },
+        {
+            element: '.stats-overview',
+            intro: 'These cards show your overall progress in different areas of Skill Quest.',
+            position: 'bottom'
+        },
+        {
+            element: '.dashboard-card.top-skills',
+            intro: 'Here you can see your top skills. Focus on these to level up faster!',
+            position: 'left'
+        },
+        {
+            element: '.dashboard-card.activity-log',
+            intro: 'The activity log shows your recent actions. Keep it busy to make steady progress!',
+            position: 'top'
+        },
+        {
+            element: '.dashboard-card.active-quests',
+            intro: 'These are your active quests. Complete them to earn bonus rewards!',
+            position: 'right'
+        },
+        {
+            element: '.nav-btn[data-section="overview"]',
+            intro: 'The Character Sheet gives you an overview of your progress and recent activities.',
+            position: 'right'
+        },
+        {
+            element: '.nav-btn[data-section="skills"]',
             intro: 'Add and manage your skills here. Each skill represents an area you want to improve.',
             position: 'right'
         },
-        { 
-            element: '.nav-btn[data-section="activities"]', 
+        {
+            element: '.nav-btn[data-section="activities"]',
             intro: 'Create activities to practice your skills. Completing activities earns you XP and levels up your skills.',
             position: 'right'
         },
-        { 
-            element: '.nav-btn[data-section="quests"]', 
+        {
+            element: '.nav-btn[data-section="quests"]',
             intro: 'Take on quests to challenge yourself. Quests are collections of activities that provide larger goals and greater rewards.',
             position: 'right'
         },
-        { 
-            element: '.nav-btn[data-section="rewards"]', 
+        {
+            element: '.nav-btn[data-section="rewards"]',
             intro: 'View your achievements and milestones here. Track your overall progress and celebrate your successes!',
             position: 'right'
         },
-        { 
-            element: '#userAvatar', 
-            intro: 'This is your character profile. Watch your level increase as you complete activities and quests!',
-            position: 'bottom'
+        {
+            element: '.nav-btn[data-section="howToUse"]',
+            intro: 'If you are ever wondering how to use Skills Quest, check out this page to learn more.',
+            position: 'right'
+        },
+        {
+            element: '#settingsBtn',
+            intro: 'Finally, go here to adjust your settings. You can change your name, picture, and purge your data right here.',
+            position: 'right'
         }
     ];
+
+    if (isMobile) {
+        steps.forEach(step => {
+            if (step.position === 'right' || step.position === 'left') {
+                step.position = 'bottom';
+            }
+        });
+    }
 
     introJs().setOptions({
         steps: steps,
@@ -168,11 +217,13 @@ function startWalkthrough() {
         disableInteraction: true,
         highlightClass: 'introjs-custom-highlight',
         tooltipClass: 'introjs-custom-tooltip',
-        nextLabel: 'Next →',
-        prevLabel: '← Back',
+        nextLabel: isMobile ? 'Next' : 'Next →',
+        prevLabel: isMobile ? 'Back' : '← Back',
         doneLabel: 'Finish',
+        skipLabel: '×',
         scrollToElement: true,
-        scrollPadding: 50
+        scrollPadding: isMobile ? 20 : 50,
+        tooltipPosition: isMobile ? 'bottom' : 'auto'
     }).oncomplete(() => {
         localStorage.setItem('walkthroughCompleted', 'true');
     }).start();
