@@ -90,15 +90,9 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    function toggleSidebar() {
-        sidebar.classList.toggle('sidebar-open');
+    if (!localStorage.getItem('walkthroughCompleted')) {
+        showWelcomeModal();
     }
-
-    if (!localStorage.getItem('tutorialCompleted')) {
-        startWalkthrough();
-    }
-
-    checkAndStartTutorial();
 });
 
 function checkAndStartTutorial() {
@@ -111,9 +105,9 @@ function checkAndStartTutorial() {
 
 function showWelcomeModal() {
     const modal = document.createElement('div');
-    modal.className = 'modal';
+    modal.className = 'modal welcome-modal';
     modal.innerHTML = `
-        <div class="modal-content welcome-modal">
+        <div class="modal-content">
             <h2>Welcome to Skill Quest</h2>
             <p>Embark on your personal development journey with Skill Quest. Here's how to get started:</p>
             <ol>
@@ -128,12 +122,13 @@ function showWelcomeModal() {
     document.body.appendChild(modal);
     modal.style.display = 'block';
 
-    document.getElementById('startTutorial').addEventListener('click', () => {
+    const startTutorialBtn = modal.querySelector('#startTutorial');
+    startTutorialBtn.addEventListener('click', function() {
         modal.style.display = 'none';
-        modal.remove();
         startWalkthrough();
     });
 }
+
 // Call this function when the app loads for the first time
 if (!localStorage.getItem('walkthroughCompleted')) {
     showWelcomeModal();
@@ -148,6 +143,7 @@ function startWalkthrough() {
         startDesktopTutorial();
     }
 }
+
 
 function startMobileTutorial() {
     const tutorialSteps = [

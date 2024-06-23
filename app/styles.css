@@ -1075,14 +1075,25 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 
 /* Welcome Modal Styles */
 .welcome-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.welcome-modal .modal-content {
     background-color: var(--background-color);
-    border: 2px solid var(--accent-color);
-    border-radius: 15px;
     padding: 2rem;
-    max-width: 500px;
-    width: 90%;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    position: relative;
+    border-radius: 10px;
+    max-width: 80%;
+    max-height: 80%;
+    overflow-y: auto;
 }
 
 .welcome-modal h2 {
