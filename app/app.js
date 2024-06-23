@@ -8,7 +8,7 @@ let user = {
     xp: 0,
     level: 1,
     achievements: [],
-    avatar: '../public/default-avatar.webp',
+    avatar: 'default avatar',
     lastActivityDate: null,
     currentStreak: 0,
     longestStreak: 0
@@ -206,7 +206,7 @@ mainContent.innerHTML = `
         <div class="hero-content">
             <div class="user-info">
                 <div class="avatar-frame">
-                    <img src="${user.avatar || '../public/default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
+                    <img src="${user.avatar || 'default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
                 </div>
                 <div class="user-details">
                     <h2 id="userName">${user.name}</h2>
@@ -1305,9 +1305,9 @@ function updateUserInfoDisplay() {
     if (userLevelElement) userLevelElement.textContent = 'Level ' + user.level;
     
     if (avatarImg) {
-        avatarImg.src = user.avatar || '../public/default-avatar.webp';
+        avatarImg.src = user.avatar || 'default-avatar.webp';
         avatarImg.onerror = function() {
-            this.src = '../public/default-avatar.webp';
+            this.src = 'default-avatar.webp';
         };
     }
     
@@ -1445,7 +1445,7 @@ function purgeData(dataType) {
                 xp: 0,
                 level: 1,
                 achievements: [],
-                avatar: '../public/default-avatar.webp'
+                avatar: 'public/default-avatar.webp'
             };
             break;
         case 'skills':
