@@ -10,7 +10,11 @@ let user = {
     achievements: [],
     avatar: 'default-avatar.webp'
 };
+let scrollbars = {};
 
+
+const XP_PER_LEVEL = 100;
+const MAX_SKILL_LEVEL = 50;
 const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700];
 const ACHIEVEMENTS = [
     { id: 'first_skill', name: 'Skill Starter', description: 'Create your first skill', check: () => Object.keys(skills).length >= 1 },
@@ -20,10 +24,20 @@ const ACHIEVEMENTS = [
     { id: 'first_quest', name: 'Questor', description: 'Complete your first quest', check: () => quests.some(q => q.completed) },
 ];
 
+const SKILL_ICONS = [
+    'fa-book', 'fa-dumbbell', 'fa-brain', 'fa-paint-brush', 'fa-code', 
+    'fa-music', 'fa-heart', 'fa-running', 'fa-utensils', 'fa-language',
+    'fa-camera', 'fa-chess', 'fa-microscope', 'fa-hammer', 'fa-leaf'
+];
+
+function generateUniqueId() {
+    return 'id_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     loadFromLocalStorage();
     initializeDashboard();
-    updateUserInfoDisplay();
+    updateUserInfoDisplay(); 
 
     const settingsBtn = document.getElementById('settingsBtn');
     if (settingsBtn) {
@@ -39,12 +53,18 @@ function showSettingsMenu() {
             <li><button id="editProfileBtn" class="settings-option">Edit Profile</button></li>
             <li><button id="changePasswordBtn" class="settings-option">Change Password</button></li>
             <li><button id="privacySettingsBtn" class="settings-option">Privacy Settings</button></li>
+            <li><button id="debugOptionsBtn" class="settings-option">Debug Options</button></li>
         </ul>
     `);
 
     document.getElementById('editProfileBtn').addEventListener('click', () => {
         closeModal(settingsMenu);
         showEditProfileForm();
+    });
+
+    document.getElementById('debugOptionsBtn').addEventListener('click', () => {
+        closeModal(settingsMenu);
+        showDebugOptions();
     });
 
     // Add other settings options functionality here
@@ -63,6 +83,10 @@ function initializeDashboard() {
 
 function loadSection(sectionName) {
     const mainContent = document.getElementById('mainContent');
+    if (!mainContent) {
+        console.error('Main content element not found');
+        return;
+    }
     mainContent.innerHTML = '';
 
     switch(sectionName) {
@@ -81,6 +105,8 @@ function loadSection(sectionName) {
         case 'rewards':
             loadRewardsSection();
             break;
+        default:
+            console.error('Unknown section:', sectionName);
     }
 
     document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -89,28 +115,59 @@ function loadSection(sectionName) {
 }
 
 function loadOverviewSection() {
-    const MASTERY_LEVEL = 50;
     const mainContent = document.getElementById('mainContent');
-    
-    const masteredSkillsCount = Object.values(skills).filter(s => s.level >= MASTERY_LEVEL).length;
+    if (!mainContent) return;
+
+    const masteredSkillsCount = Object.values(skills).filter(s => s.level >= MAX_SKILL_LEVEL).length;
     const totalSkills = Object.keys(skills).length;
     const completedQuests = quests.filter(q => q.completed).length;
     const totalQuests = quests.length;
+    const recentActivities = activities
+        .sort((a, b) => b.lastUpdated - a.lastUpdated)
+        .slice(0, 5);
 
     const topSkills = Object.entries(skills)
         .sort((a, b) => b[1].level - a[1].level)
         .slice(0, 3);
 
+    const topSkillsLimit = 3;
+    const recentActivitiesLimit = 5;
+    const activeQuestsLimit = 3;
+
+    const topSkillsHtml = topSkills.map(([id, data]) => `
+    <div class="skill-entry">
+        <div class="skill-icon"><i class="fas ${data.icon}"></i></div>
+        <div class="skill-details">
+            <div class="skill-name">${data.name}</div>
+            <div class="skill-level">Level ${data.level}</div>
+            <div class="skill-bar-wrapper">
+                <div class="skill-bar" style="width: ${(data.level / MAX_SKILL_LEVEL) * 100}%"></div>
+            </div>
+            <div class="skill-xp">${data.xp} / ${XP_PER_LEVEL} XP</div>
+        </div>
+    </div>
+`).join('');
+
     mainContent.innerHTML = `
         <div class="dashboard">
             <div class="hero-section">
                 <div class="hero-content">
-                    <h2>Welcome back, ${user.name}!</h2>
-                    <p>Level ${user.level} Adventurer</p>
-                    <div class="xp-bar">
-                        <div class="xp-fill" style="width: ${(user.xp / LEVEL_THRESHOLDS[user.level]) * 100}%"></div>
+                    <div class="user-info">
+                        <div class="avatar-frame">
+                            <img src="${user.avatar || 'default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
+                        </div>
+                        <div class="user-details">
+                            <h2 id="userName">${user.name}</h2>
+                            <div class="user-level">
+                                <span id="userLevel">Level ${user.level}</span>
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="xp-bar">
+                                <div class="xp-fill" id="xpFill" style="width: ${(user.xp / LEVEL_THRESHOLDS[user.level]) * 100}%"></div>
+                            </div>
+                            <p id="xpInfo">${user.xp} / ${LEVEL_THRESHOLDS[user.level]} XP to next level</p>
+                        </div>
                     </div>
-                    <p>${user.xp} / ${LEVEL_THRESHOLDS[user.level]} XP to next level</p>
                 </div>
             </div>
 
@@ -120,7 +177,7 @@ function loadOverviewSection() {
                     <h3>Skills Mastered</h3>
                     <p>${masteredSkillsCount} / ${totalSkills}</p>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${(masteredSkillsCount / totalSkills) * 100}%"></div>
+                        <div class="progress-fill" style="width: ${totalSkills > 0 ? (masteredSkillsCount / totalSkills) * 100 : 0}%"></div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -128,7 +185,7 @@ function loadOverviewSection() {
                     <h3>Quests Completed</h3>
                     <p>${completedQuests} / ${totalQuests}</p>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${(completedQuests / totalQuests) * 100}%"></div>
+                        <div class="progress-fill" style="width: ${totalQuests > 0 ? (completedQuests / totalQuests) * 100 : 0}%"></div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -141,62 +198,96 @@ function loadOverviewSection() {
                 </div>
             </div>
 
+
             <div class="dashboard-grid">
                 <div class="dashboard-card top-skills">
                     <h3>Top Skills</h3>
-                    ${topSkills.map(([name, data], index) => `
-                        <div class="skill-item">
-                            <div class="skill-icon skill-${index + 1}"></div>
-                            <div class="skill-info">
-                                <h4>${name}</h4>
-                                <p>Level ${data.level}</p>
-                                <div class="skill-bar-wrapper">
-                                    <div class="skill-bar" style="width: ${(data.level / MASTERY_LEVEL) * 100}%"></div>
+                    <div class="card-content">
+                        ${topSkills.map(([id, data]) => `
+                            <div class="skill-entry">
+                                <div class="skill-icon"><i class="fas ${data.icon}"></i></div>
+                                <div class="skill-details">
+                                    <div class="skill-name">${data.name}</div>
+                                    <div class="skill-level">Level ${data.level}</div>
+                                    <div class="skill-bar-wrapper">
+                                        <div class="skill-bar" style="width: ${(data.level / MAX_SKILL_LEVEL) * 100}%"></div>
+                                    </div>
+                                    <div class="skill-xp">${data.xp} / ${XP_PER_LEVEL} XP</div>
                                 </div>
                             </div>
-                        </div>
-                    `).join('')}
-                    <a href="#" class="see-more">View all skills</a>
+                        `).join('')}
+                    </div>
+                    ${Object.keys(skills).length > 3 ? '<a href="#" class="see-more">View all skills</a>' : ''}
                 </div>
 
-                <div class="dashboard-card recent-activities">
-                    <h3>Recent Activities</h3>
-                    <ul class="activity-list">
-                        ${activities.slice(-5).reverse().map(a => `
-                            <li class="${a.completed ? 'completed' : ''}">
-                                <span class="activity-name">${a.name}</span>
-                                <span class="activity-xp">+${a.xp} XP</span>
-                            </li>
-                        `).join('') || '<li class="no-activities">No recent activities</li>'}
-                    </ul>
-                    <a href="#" class="see-more">View all activities</a>
+                <div class="dashboard-card activity-log">
+                    <h3>Activity Log</h3>
+                    <div class="card-content">
+                        ${recentActivities.length > 0 ? `
+                            <table class="activity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Activity</th>
+                                        <th>Skill</th>
+                                        <th>XP</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${recentActivities.map(activity => `
+                                        <tr>
+                                            <td>${activity.name}</td>
+                                            <td>${skills[activity.skillId]?.name || 'Unknown Skill'}</td>
+                                            <td>${activity.xp} XP</td>
+                                            <td>${activity.completed ? '<span class="status completed">Completed</span>' : '<span class="status todo">To-Do</span>'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : '<p class="no-activities">No recent activities</p>'}
+                    </div>
+                    ${activities.length > 5 ? '<a href="#" class="see-more">View all activities</a>' : ''}
                 </div>
 
                 <div class="dashboard-card active-quests">
-                    <h3>Active Quests</h3>
-                    <ul class="quest-list">
-                        ${quests.filter(q => !q.completed).slice(0, 3).map(q => `
-                            <li>
-                                <h4>${q.name}</h4>
-                                <p>${q.description}</p>
+                <h3>Active Quests</h3>
+                <div class="card-content">
+                    ${quests.filter(q => !q.completed).slice(0, 3).map(quest => {
+                        const completedActivities = quest.activities.filter(a => activities.find(act => act.id === a && act.completed)).length;
+                        const totalActivities = quest.activities.length;
+                        const progressPercentage = (completedActivities / totalActivities) * 100;
+                        
+                        return `
+                            <div class="quest-entry">
+                                <div class="quest-name">${quest.name}</div>
+                                <div class="quest-description">${quest.description}</div>
                                 <div class="quest-progress">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: ${(q.activities.filter(a => activities.find(act => act.name === a && act.completed)).length / q.activities.length) * 100}%"></div>
+                                    <span>${completedActivities}/${totalActivities}</span>
+                                    <div class="quest-progress-bar">
+                                        <div class="quest-progress-fill" style="width: ${progressPercentage}%"></div>
                                     </div>
-                                    <span class="progress-text">${q.activities.filter(a => activities.find(act => act.name === a && act.completed)).length} / ${q.activities.length} activities</span>
+                                    <span>${progressPercentage.toFixed(0)}%</span>
                                 </div>
-                            </li>
-                        `).join('') || '<li class="no-quests">No active quests</li>'}
-                    </ul>
-                    <a href="#" class="see-more">View all quests</a>
+                            </div>
+                        `;
+                    }).join('') || '<p class="no-quests">No active quests</p>'}
                 </div>
+                ${quests.filter(q => !q.completed).length > 3 ? '<a href="#" class="see-more">View all quests</a>' : ''}
             </div>
         </div>
-    `;
+    </div>
+`;
+
+const seeMoreLinks = mainContent.querySelectorAll('.see-more');
+seeMoreLinks[0]?.addEventListener('click', () => loadSection('skills'));
+seeMoreLinks[1]?.addEventListener('click', () => loadSection('activities'));
+seeMoreLinks[2]?.addEventListener('click', () => loadSection('quests'));
 }
 
 function loadSkillsSection() {
     const mainContent = document.getElementById('mainContent');
+    if (!mainContent) return;
+
     mainContent.innerHTML = `
         <div class="section-header">
             <h2>Your Skills</h2>
@@ -205,115 +296,45 @@ function loadSkillsSection() {
         <div class="grid-list" id="skillsList"></div>
     `;
 
-    document.getElementById('addSkillBtn').addEventListener('click', showAddSkillForm);
+    document.getElementById('addSkillBtn')?.addEventListener('click', showAddSkillForm);
     updateSkillsList();
 }
 
 function updateSkillsList() {
     const skillsList = document.getElementById('skillsList');
-    skillsList.innerHTML = Object.entries(skills).map(([name, data]) => `
-        <div class="grid-item">
-            <h3>${name}</h3>
-            <p>Level ${data.level}</p>
+    if (!skillsList) return;
+
+    if (Object.keys(skills).length === 0) {
+        skillsList.innerHTML = '<p>You haven\'t added any skills yet. Click "Add New Skill" to get started!</p>';
+        return;
+    }
+
+    skillsList.innerHTML = Object.entries(skills).map(([id, skill]) => `
+    <div class="grid-item">
+        <div class="item-content">
+            <i class="fas ${skill.icon || 'fa-question'} skill-icon"></i>
+            <h3>${skill.name || 'Unnamed Skill'}</h3>
+            <p>Level ${skill.level || 1}</p>
             <div class="item-progress">
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${(data.xp / data.threshold) * 100}%"></div>
+                    <div class="progress-fill" style="width: ${((skill.xp || 0) / XP_PER_LEVEL) * 100}%"></div>
                 </div>
-                <p>${data.xp} / ${data.threshold} XP</p>
+                <p>${skill.xp || 0} / ${XP_PER_LEVEL} XP</p>
             </div>
         </div>
-    `).join('');
-}
-
-function loadActivitiesSection() {
-    const mainContent = document.getElementById('mainContent');
-    mainContent.innerHTML = `
-        <div class="section-header">
-            <h2>Your Activities</h2>
-            <button id="addActivityBtn" class="action-btn">Add New Activity</button>
+        <div class="item-actions">
+            <button class="edit-btn" data-skill="${id}">Edit</button>
+            <button class="delete-btn" data-skill="${id}">Delete</button>
         </div>
-        <div class="grid-list" id="activitiesList"></div>
-    `;
+    </div>
+`).join('');
 
-    document.getElementById('addActivityBtn').addEventListener('click', showAddActivityForm);
-    updateActivitiesList();
-}
-
-function updateActivitiesList() {
-    const activitiesList = document.getElementById('activitiesList');
-    activitiesList.innerHTML = activities.map(activity => `
-        <div class="grid-item ${activity.completed ? 'completed' : ''}">
-            <h3>${activity.name}</h3>
-            <p>${activity.xp} XP - ${activity.skill}</p>
-            ${activity.completed ? '<span class="status">Completed</span>' : 
-              `<button class="complete-btn" data-activity="${activity.name}">Complete</button>`}
-        </div>
-    `).join('');
-
-    document.querySelectorAll('.complete-btn').forEach(btn => {
-        btn.addEventListener('click', () => completeActivity(btn.dataset.activity));
+    skillsList.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => showEditSkillForm(btn.dataset.skill));
     });
-}
 
-
-function loadQuestsSection() {
-    const mainContent = document.getElementById('mainContent');
-    mainContent.innerHTML = `
-        <div class="section-header">
-            <h2>Your Quests</h2>
-            <button id="addQuestBtn" class="action-btn">Add New Quest</button>
-        </div>
-        <div class="grid-list" id="questsList"></div>
-    `;
-
-    document.getElementById('addQuestBtn').addEventListener('click', showAddQuestForm);
-    updateQuestsList();
-}
-
-function updateQuestsList() {
-    const questsList = document.getElementById('questsList');
-    questsList.innerHTML = quests.map(quest => `
-        <div class="grid-item ${quest.completed ? 'completed' : ''}">
-            <h3>${quest.name}</h3>
-            <p>${quest.description}</p>
-            <p>Activities: ${quest.activities.join(', ')}</p>
-            ${quest.completed ? '<span class="status">Completed</span>' : 
-              `<button class="complete-btn" data-quest="${quest.name}">Complete Quest</button>`}
-        </div>
-    `).join('');
-
-    document.querySelectorAll('.complete-btn').forEach(btn => {
-        btn.addEventListener('click', () => completeQuest(btn.dataset.quest));
-    });
-}
-
-function loadRewardsSection() {
-    const mainContent = document.getElementById('mainContent');
-    mainContent.innerHTML = `
-        <div class="section-header">
-            <h2>Your Rewards</h2>
-            <button id="addRewardBtn" class="action-btn">Add New Reward</button>
-        </div>
-        <div class="grid-list" id="rewardsList"></div>
-    `;
-
-    document.getElementById('addRewardBtn').addEventListener('click', showAddRewardForm);
-    updateRewardsList();
-}
-
-function updateRewardsList() {
-    const rewardsList = document.getElementById('rewardsList');
-    rewardsList.innerHTML = rewards.map(reward => `
-        <div class="grid-item ${reward.claimed ? 'claimed' : ''}">
-            <h3>${reward.name}</h3>
-            <p>Unlocks at Level ${reward.level} for ${reward.skill}</p>
-            ${reward.claimed ? '<span class="status">Claimed</span>' : 
-              `<button class="claim-btn" data-reward="${reward.name}">Claim Reward</button>`}
-        </div>
-    `).join('');
-
-    document.querySelectorAll('.claim-btn').forEach(btn => {
-        btn.addEventListener('click', () => claimReward(btn.dataset.reward));
+    skillsList.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteSkill(btn.dataset.skill));
     });
 }
 
@@ -325,8 +346,10 @@ function showAddSkillForm() {
                 <input type="text" id="skillName" required>
             </div>
             <div class="form-group">
-                <label for="skillThreshold">XP Threshold:</label>
-                <input type="number" id="skillThreshold" value="100" required>
+                <label for="skillIcon">Skill Icon:</label>
+                <select id="skillIcon" required>
+                    ${SKILL_ICONS.map(icon => `<option value="${icon}"><i class="fas ${icon}"></i> ${icon.replace('fa-', '')}</option>`).join('')}
+                </select>
             </div>
             <button type="submit" class="action-btn">Add Skill</button>
         </form>
@@ -334,19 +357,166 @@ function showAddSkillForm() {
 
     document.getElementById('addSkillForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        const skillName = document.getElementById('skillName').value;
-        const threshold = parseInt(document.getElementById('skillThreshold').value);
+        const skillName = document.getElementById('skillName').value.trim();
+        const icon = document.getElementById('skillIcon').value;
         
-        if (skills[skillName]) {
+        if (!skillName) {
+            alert('Please enter a skill name.');
+            return;
+        }
+
+        // Fix: Check if the skill object exists before accessing its name property
+        if (Object.values(skills).some(skill => skill && skill.name && skill.name.toLowerCase() === skillName.toLowerCase())) {
             alert('Skill already exists!');
             return;
         }
 
-        skills[skillName] = { xp: 0, level: 1, threshold: threshold };
+        const skillId = generateUniqueId();
+        skills[skillId] = { id: skillId, name: skillName, xp: 0, level: 1, icon: icon };
         saveToLocalStorage();
         closeModal(modal);
         loadSection('skills');
         addXP(10); // Award XP for creating a new skill
+    });
+}
+
+function showEditSkillForm(skillId) {
+    const skill = skills[skillId];
+    if (!skill) return;
+
+    const modal = createModal('Edit Skill', `
+        <form id="editSkillForm">
+            <input type="hidden" id="editSkillId" value="${skillId}">
+            <div class="form-group">
+                <label for="editSkillName">Skill Name:</label>
+                <input type="text" id="editSkillName" value="${skill.name}" required>
+            </div>
+            <div class="form-group">
+                <label for="editSkillIcon">Skill Icon:</label>
+                <select id="editSkillIcon" required>
+                    ${SKILL_ICONS.map(icon => `<option value="${icon}" ${skill.icon === icon ? 'selected' : ''}><i class="fas ${icon}"></i> ${icon.replace('fa-', '')}</option>`).join('')}
+                </select>
+            </div>
+            <button type="submit" class="action-btn">Update Skill</button>
+        </form>
+    `);
+
+    document.getElementById('editSkillForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const skillId = document.getElementById('editSkillId').value;
+        const skillName = document.getElementById('editSkillName').value.trim();
+        const icon = document.getElementById('editSkillIcon').value;
+        
+        if (!skillName) {
+            alert('Please enter a skill name.');
+            return;
+        }
+
+        if (Object.values(skills).some(s => s && s.id !== skillId && s.name && s.name.toLowerCase() === skillName.toLowerCase())) {
+            alert('A skill with this name already exists!');
+            return;
+        }
+
+        skills[skillId].name = skillName;
+        skills[skillId].icon = icon;
+        saveToLocalStorage();
+        closeModal(modal);
+        loadSection('skills');
+    });
+}
+
+function deleteSkill(skillId) {
+    if (confirm('Are you sure you want to delete this skill? This action cannot be undone.')) {
+        delete skills[skillId];
+        activities = activities.filter(a => a.skillId !== skillId);
+        saveToLocalStorage();
+        loadSection('skills');
+    }
+}
+
+function loadActivitiesSection() {
+    const mainContent = document.getElementById('mainContent');
+    if (!mainContent) return;
+
+    mainContent.innerHTML = `
+        <div class="section-header">
+            <h2>Your Activities</h2>
+            <button id="addActivityBtn" class="action-btn">Add New Activity</button>
+        </div>
+        <div id="activitiesList"></div>
+    `;
+
+    document.getElementById('addActivityBtn')?.addEventListener('click', showAddActivityForm);
+    updateActivitiesList();
+}
+
+function updateActivitiesList() {
+    const activitiesList = document.getElementById('activitiesList');
+    if (!activitiesList) return;
+
+    if (activities.length === 0) {
+        activitiesList.innerHTML = '<p>You haven\'t added any activities yet. Click "Add New Activity" to get started!</p>';
+        return;
+    }
+
+    // Group activities by skill
+    const groupedActivities = {};
+    activities.forEach(activity => {
+        const skillId = activity.skillId;
+        if (!groupedActivities[skillId]) {
+            groupedActivities[skillId] = [];
+        }
+        groupedActivities[skillId].push(activity);
+    });
+
+    // Sort skills alphabetically
+    const sortedSkills = Object.keys(groupedActivities).sort((a, b) => {
+        return skills[a].name.localeCompare(skills[b].name);
+    });
+
+    // Generate HTML for each skill group
+    const html = sortedSkills.map(skillId => {
+        const skill = skills[skillId];
+        const skillActivities = groupedActivities[skillId];
+
+        return `
+            <div class="skill-group">
+                <h3 class="skill-name">${skill.name}</h3>
+                <div class="grid-list">
+                    ${skillActivities.map(activity => `
+                        <div class="grid-item ${activity.completed ? 'completed' : ''}" id="activity-${activity.id}">
+                            <div class="item-content">
+                                <h4>${activity.name}</h4>
+                                <p>${activity.xp} XP</p>
+                                <p class="activity-status">${activity.completed ? '<span class="status completed">Completed</span>' : '<span class="status todo">To-Do</span>'}</p>
+                            </div>
+                            <div class="item-actions">
+                                ${activity.completed ? 
+                                    '' : 
+                                    `<button class="complete-btn" data-activity="${activity.id}">Complete</button>`}
+                                <button class="edit-btn" data-activity="${activity.id}">Edit</button>
+                                <button class="delete-btn" data-activity="${activity.id}">Delete</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    activitiesList.innerHTML = html;
+
+    // Add event listeners
+    activitiesList.querySelectorAll('.complete-btn').forEach(btn => {
+        btn.addEventListener('click', () => completeActivity(btn.dataset.activity));
+    });
+
+    activitiesList.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => showEditActivityForm(btn.dataset.activity));
+    });
+
+    activitiesList.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteActivity(btn.dataset.activity));
     });
 }
 
@@ -359,12 +529,12 @@ function showAddActivityForm() {
             </div>
             <div class="form-group">
                 <label for="activityXP">XP Reward:</label>
-                <input type="number" id="activityXP" required>
+                <input type="number" id="activityXP" required min="1">
             </div>
             <div class="form-group">
                 <label for="activitySkill">Related Skill:</label>
                 <select id="activitySkill" required>
-                    ${Object.keys(skills).map(skill => `<option value="${skill}">${skill}</option>`).join('')}
+                    ${Object.entries(skills).map(([id, skill]) => `<option value="${id}">${skill.name}</option>`).join('')}
                 </select>
             </div>
             <div class="form-group">
@@ -379,18 +549,30 @@ function showAddActivityForm() {
 
     document.getElementById('addActivityForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        const activityName = document.getElementById('activityName').value;
+        const activityName = document.getElementById('activityName').value.trim();
         const activityXP = parseInt(document.getElementById('activityXP').value);
         const selectedSkill = document.getElementById('activitySkill').value;
         const isRepeatable = document.getElementById('activityRepeatable').checked;
 
+        if (!activityName) {
+            alert('Please enter an activity name.');
+            return;
+        }
+
+        if (isNaN(activityXP) || activityXP <= 0) {
+            alert('Please enter a valid XP reward (must be a positive number).');
+            return;
+        }
+
         const newActivity = { 
+            id: generateUniqueId(),
             name: activityName, 
             xp: activityXP, 
-            skill: selectedSkill, 
+            skillId: selectedSkill, 
             repeatable: isRepeatable,
             completed: false,
-            completionCount: 0
+            completionCount: 0,
+            lastUpdated: Date.now()
         };
         activities.push(newActivity);
         saveToLocalStorage();
@@ -398,6 +580,254 @@ function showAddActivityForm() {
         loadSection('activities');
         addXP(5); // Award XP for creating a new activity
     });
+}
+
+function showEditActivityForm(activityId) {
+    const activity = activities.find(a => a.id === activityId);
+    if (!activity) return;
+
+    const modal = createModal('Edit Activity', `
+        <form id="editActivityForm">
+            <input type="hidden" id="editActivityId" value="${activityId}">
+            <div class="form-group">
+                <label for="editActivityName">Activity Name:</label>
+                <input type="text" id="editActivityName" value="${activity.name}" required>
+            </div>
+            <div class="form-group">
+                <label for="editActivityXP">XP Reward:</label>
+                <input type="number" id="editActivityXP" value="${activity.xp}" required min="1">
+            </div>
+            <div class="form-group">
+                <label for="editActivitySkill">Related Skill:</label>
+                <select id="editActivitySkill" required>
+                    ${Object.entries(skills).map(([id, skill]) => `<option value="${id}" ${activity.skillId === id ? 'selected' : ''}>${skill.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="editActivityRepeatable" ${activity.repeatable ? 'checked' : ''}>
+                    Repeatable
+                </label>
+            </div>
+            <button type="submit" class="action-btn">Update Activity</button>
+        </form>
+    `);
+
+    document.getElementById('editActivityForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const activityId = document.getElementById('editActivityId').value;
+        const activityName = document.getElementById('editActivityName').value.trim();
+        const activityXP = parseInt(document.getElementById('editActivityXP').value);
+        const selectedSkill = document.getElementById('editActivitySkill').value;
+        const isRepeatable = document.getElementById('editActivityRepeatable').checked;
+
+        if (!activityName) {
+            alert('Please enter an activity name.');
+            return;
+        }
+
+        if (isNaN(activityXP) || activityXP <= 0) {
+            alert('Please enter a valid XP reward (must be a positive number).');
+            return;
+        }
+
+        const activityIndex = activities.findIndex(a => a.id === activityId);
+        if (activityIndex !== -1) {
+            activities[activityIndex] = { 
+                ...activities[activityIndex],
+                name: activityName, 
+                xp: activityXP, 
+                skillId: selectedSkill, 
+                repeatable: isRepeatable
+            };
+            saveToLocalStorage();
+            closeModal(modal);
+            loadSection('activities');
+        }
+    });
+}
+
+function deleteActivity(activityId) {
+    console.log('Attempting to delete activity:', activityId);
+    if (confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
+        const initialCount = activities.length;
+        activities = activities.filter(a => a.id !== activityId);
+        const finalCount = activities.length;
+
+        if (initialCount === finalCount) {
+            console.error('Activity not found:', activityId);
+            alert('Error: Activity not found.');
+            return;
+        }
+
+        // Remove the activity from any quests that include it
+        quests.forEach(quest => {
+            const initialQuestActivities = quest.activities.length;
+            quest.activities = quest.activities.filter(id => id !== activityId);
+            if (initialQuestActivities !== quest.activities.length) {
+                console.log('Removed activity from quest:', quest.id);
+            }
+        });
+
+        saveToLocalStorage();
+        updateActivitiesList();
+        updateQuestsList(); // Update quests in case any were affected
+        console.log('Activity deleted successfully:', activityId);
+        alert('Activity deleted successfully.');
+    }
+}
+
+function completeActivity(activityId) {
+    const activity = activities.find(a => a.id === activityId);
+    if (!activity) return;
+
+    if (activity.repeatable) {
+        activity.completionCount = (activity.completionCount || 0) + 1;
+    } else if (!activity.completed) {
+        activity.completed = true;
+    }
+    
+    activity.lastUpdated = Date.now(); 
+
+    const skill = skills[activity.skillId];
+    if (skill && skill.level < MAX_SKILL_LEVEL) {
+        skill.xp += activity.xp;
+        addXP(activity.xp);
+        while (skill.xp >= XP_PER_LEVEL && skill.level < MAX_SKILL_LEVEL) {
+            skill.level++;
+            skill.xp -= XP_PER_LEVEL;
+            alert(`Congratulations! You've leveled up ${skill.name} to level ${skill.level}!`);
+            addXP(20);
+        }
+        if (skill.level === MAX_SKILL_LEVEL) {
+            skill.xp = XP_PER_LEVEL;
+        }
+    }
+    
+    const activityElement = document.getElementById(`activity-${activityId}`);
+    if (activityElement) {
+        activityElement.classList.add('activity-completed-animation');
+        setTimeout(() => {
+            activityElement.classList.remove('activity-completed-animation');
+        }, 500);
+    }
+
+    // Check if any quests are completed
+    checkQuestsCompletion();
+
+    saveToLocalStorage();
+    updateActivitiesList();
+    updateUserInfoDisplay();
+}
+
+function checkQuestsCompletion() {
+    quests.forEach(quest => {
+        if (!quest.completed) {
+            const allActivitiesCompleted = quest.activities.every(actId => 
+                activities.find(a => a.id === actId && a.completed)
+            );
+            if (allActivitiesCompleted) {
+                alert(`You've completed all activities for the quest "${quest.name}"! You can now claim your reward.`);
+            }
+        }
+    });
+    updateQuestsList();
+}
+
+function loadQuestsSection() {
+    const mainContent = document.getElementById('mainContent');
+    if (!mainContent) return;
+
+    mainContent.innerHTML = `
+        <div class="section-header">
+            <h2>Your Quests</h2>
+            <button id="addQuestBtn" class="action-btn">Add New Quest</button>
+        </div>
+        <div class="grid-list" id="questsList"></div>
+    `;
+
+    document.getElementById('addQuestBtn')?.addEventListener('click', showAddQuestForm);
+    updateQuestsList();
+}
+
+function updateQuestsList() {
+    const questsList = document.getElementById('questsList');
+    if (!questsList) return;
+
+    if (quests.length === 0) {
+        questsList.innerHTML = '<p>You haven\'t added any quests yet. Click "Add New Quest" to get started!</p>';
+        return;
+    }
+
+    questsList.innerHTML = quests.map(quest => {
+        const completedActivities = quest.activities.filter(actId => 
+            activities.find(a => a.id === actId && a.completed)
+        ).length;
+        const totalActivities = quest.activities.length;
+        const isCompleted = completedActivities === totalActivities;
+        const progressPercentage = (completedActivities / totalActivities) * 100;
+
+        return `
+            <div class="grid-item ${quest.completed ? 'completed' : ''}" id="quest-${quest.id}">
+                <div class="item-content">
+                    <h3>${quest.name}</h3>
+                    <p>${quest.description}</p>
+                    <p>Progress: ${completedActivities}/${totalActivities} activities</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progressPercentage}%"></div>
+                    </div>
+                    <p>Reward: ${quest.reward || 'None'}</p>
+                </div>
+                <div class="item-actions">
+                    ${!quest.completed && isCompleted ? 
+                        `<button class="claim-btn" data-quest="${quest.id}">Claim Reward</button>` : 
+                        ''}
+                    <button class="edit-btn" data-quest="${quest.id}">Edit</button>
+                    <button class="delete-btn" data-quest="${quest.id}">Delete</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    questsList.querySelectorAll('.claim-btn').forEach(btn => {
+        btn.addEventListener('click', () => claimQuestReward(btn.dataset.quest));
+    });
+
+    questsList.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => showEditQuestForm(btn.dataset.quest));
+    });
+
+    questsList.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteQuest(btn.dataset.quest));
+    });
+}
+
+function claimQuestReward(questId) {
+    const quest = quests.find(q => q.id === questId);
+    if (!quest || quest.completed) return;
+
+    const allActivitiesCompleted = quest.activities.every(actId => 
+        activities.find(a => a.id === actId && a.completed)
+    );
+
+    if (!allActivitiesCompleted) {
+        alert('You need to complete all activities in this quest before claiming the reward.');
+        return;
+    }
+
+    quest.completed = true;
+    
+    addXP(50);
+
+    if (quest.reward) {
+        alert(`Congratulations! You've completed the quest "${quest.name}" and earned the reward: ${quest.reward}`);
+    } else {
+        alert(`Congratulations! You've completed the quest "${quest.name}"`);
+    }
+
+    saveToLocalStorage();
+    updateQuestsList();
+    updateUserInfoDisplay();
 }
 
 function showAddQuestForm() {
@@ -412,10 +842,14 @@ function showAddQuestForm() {
                 <textarea id="questDescription" required></textarea>
             </div>
             <div class="form-group">
-                <label for="questActivities">Related Activities:</label>
+                <label for="questActivities">Activities:</label>
                 <select id="questActivities" multiple required>
-                    ${activities.map(activity => `<option value="${activity.name}">${activity.name}</option>`).join('')}
+                    ${activities.map(activity => `<option value="${activity.id}">${activity.name}</option>`).join('')}
                 </select>
+            </div>
+            <div class="form-group">
+                <label for="questReward">Reward (optional):</label>
+                <input type="text" id="questReward">
             </div>
             <button type="submit" class="action-btn">Add Quest</button>
         </form>
@@ -423,16 +857,25 @@ function showAddQuestForm() {
 
     document.getElementById('addQuestForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        const questName = document.getElementById('questName').value;
-        const questDescription = document.getElementById('questDescription').value;
+        const questName = document.getElementById('questName').value.trim();
+        const questDescription = document.getElementById('questDescription').value.trim();
         const selectedActivities = Array.from(document.getElementById('questActivities').selectedOptions).map(option => option.value);
+        const questReward = document.getElementById('questReward').value.trim();
+
+        if (!questName || !questDescription || selectedActivities.length === 0) {
+            alert('Please fill in all required fields.');
+            return;
+        }
 
         const newQuest = { 
+            id: generateUniqueId(),
             name: questName, 
             description: questDescription, 
             activities: selectedActivities,
+            reward: questReward,
             completed: false
         };
+        
         quests.push(newQuest);
         saveToLocalStorage();
         closeModal(modal);
@@ -441,137 +884,257 @@ function showAddQuestForm() {
     });
 }
 
-function showAddRewardForm() {
-    const modal = createModal('Add New Reward', `
-        <form id="addRewardForm">
+function showEditQuestForm(questId) {
+    const quest = quests.find(q => q.id === questId);
+    if (!quest) return;
+
+    const modal = createModal('Edit Quest', `
+        <form id="editQuestForm">
+            <input type="hidden" id="editQuestId" value="${questId}">
             <div class="form-group">
-                <label for="rewardName">Reward Name:</label>
-                <input type="text" id="rewardName" required>
+                <label for="editQuestName">Quest Name:</label>
+                <input type="text" id="editQuestName" value="${quest.name}" required>
             </div>
             <div class="form-group">
-                <label for="rewardSkill">Related Skill:</label>
-                <select id="rewardSkill" required>
-                    ${Object.keys(skills).map(skill => `<option value="${skill}">${skill}</option>`).join('')}
+                <label for="editQuestDescription">Description:</label>
+                <textarea id="editQuestDescription" required>${quest.description}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="editQuestActivities">Activities:</label>
+                <select id="editQuestActivities" multiple required>
+                    ${activities.map(activity => `<option value="${activity.id}" ${quest.activities.includes(activity.id) ? 'selected' : ''}>${activity.name}</option>`).join('')}
                 </select>
             </div>
             <div class="form-group">
-                <label for="rewardLevel">Required Level:</label>
-                <input type="number" id="rewardLevel" required>
+                <label for="editQuestReward">Reward (optional):</label>
+                <input type="text" id="editQuestReward" value="${quest.reward || ''}">
             </div>
-            <button type="submit" class="action-btn">Add Reward</button>
+            <button type="submit" class="action-btn">Update Quest</button>
         </form>
     `);
 
-    document.getElementById('addRewardForm').addEventListener('submit', function(e) {
+    document.getElementById('editQuestForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        const rewardName = document.getElementById('rewardName').value;
-        const rewardSkill = document.getElementById('rewardSkill').value;
-        const rewardLevel = parseInt(document.getElementById('rewardLevel').value);
+        const questId = document.getElementById('editQuestId').value;
+        const questName = document.getElementById('editQuestName').value.trim();
+        const questDescription = document.getElementById('editQuestDescription').value.trim();
+        const selectedActivities = Array.from(document.getElementById('editQuestActivities').selectedOptions).map(option => option.value);
+        const questReward = document.getElementById('editQuestReward').value.trim();
 
-        const newReward = { 
-            name: rewardName, 
-            skill: rewardSkill, 
-            level: rewardLevel,
-            claimed: false
-        };
-        rewards.push(newReward);
-        saveToLocalStorage();
-        closeModal(modal);
-        loadSection('rewards');
+        if (!questName || !questDescription || selectedActivities.length === 0) {
+            alert('Please fill in all required fields.');
+            return;
+        }
+
+        const questIndex = quests.findIndex(q => q.id === questId);
+        if (questIndex !== -1) {
+            quests[questIndex] = { 
+                ...quests[questIndex],
+                name: questName, 
+                description: questDescription, 
+                activities: selectedActivities,
+                reward: questReward
+            };
+            saveToLocalStorage();
+            closeModal(modal);
+            loadSection('quests');
+        }
     });
 }
 
-function createModal(title, content) {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>${title}</h2>
-            ${content}
-        </div>
-    `;
-    document.body.appendChild(modal);
-    modal.style.display = 'block';
-
-    modal.querySelector('.close').onclick = function() {
-        closeModal(modal);
-    };
-
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            closeModal(modal);
-        }
-    };
-
-    return modal;
-}
-
-function closeModal(modal) {
-    modal.style.display = 'none';
-    modal.remove();
-}
-
-function completeActivity(activityName) {
-    const activity = activities.find(a => a.name === activityName);
-    if (activity) {
-        if (activity.repeatable) {
-            activity.completionCount++;
-        } else if (!activity.completed) {
-            activity.completed = true;
-        }
-        
-        // Award XP
-        const skill = skills[activity.skill];
-        if (skill) {
-            skill.xp += activity.xp;
-            addXP(activity.xp); // Add XP to user
-            if (skill.xp >= skill.threshold) {
-                skill.level++;
-                skill.xp -= skill.threshold;
-                skill.threshold = Math.round(skill.threshold * 1.1); // Increase threshold by 10%
-                alert(`Congratulations! You've leveled up ${activity.skill} to level ${skill.level}!`);
-                addXP(20); // Bonus XP for leveling up a skill
-            }
-        }
-        
-        saveToLocalStorage();
-        loadSection('activities');
-        updateUserInfoDisplay();
-    }
-}
-
-function completeQuest(questName) {
-    const quest = quests.find(q => q.name === questName);
-    if (quest && !quest.completed) {
-        quest.completed = true;
-        
-        // Complete all activities in the quest
-        quest.activities.forEach(activityName => {
-            completeActivity(activityName);
-        });
-        
-        addXP(50); // Bonus XP for completing a quest
+function deleteQuest(questId) {
+    if (confirm('Are you sure you want to delete this quest? This action cannot be undone.')) {
+        quests = quests.filter(q => q.id !== questId);
         saveToLocalStorage();
         loadSection('quests');
-        updateUserInfoDisplay();
     }
 }
 
-function claimReward(rewardName) {
-    const reward = rewards.find(r => r.name === rewardName);
-    if (reward) {
-        const skill = skills[reward.skill];
-        if (skill && skill.level >= reward.level) {
-            reward.claimed = true;
-            alert(`Congratulations! You've claimed the reward: ${reward.name}`);
-            addXP(30); // Bonus XP for claiming a reward
-            saveToLocalStorage();
-            loadSection('rewards');
-            updateUserInfoDisplay();
-        } else {
-            alert(`You haven't reached the required level to claim this reward yet.`);
-        }
+function completeQuest(questId) {
+    const quest = quests.find(q => q.id === questId);
+    if (!quest || quest.completed) return;
+
+    quest.completed = true;
+    
+    quest.activities.forEach(activityId => {
+        completeActivity(activityId);
+    });
+    
+    addXP(50);
+
+    if (quest.reward) {
+        alert(`Congratulations! You've completed the quest "${quest.name}" and earned the reward: ${quest.reward}`);
+    } else {
+        alert(`Congratulations! You've completed the quest "${quest.name}"`);
+    }
+
+    saveToLocalStorage();
+    updateQuestsList();
+    updateUserInfoDisplay();
+}
+
+function loadRewardsSection() {
+    const mainContent = document.getElementById('mainContent');
+    if (!mainContent) return;
+
+    mainContent.innerHTML = `
+        <div class="section-header">
+            <h2>Achievements and Milestones</h2>
+            <button id="addMilestoneBtn" class="action-btn">Add New Milestone</button>
+        </div>
+        <div id="achievementsList"></div>
+        <div id="milestonesList"></div>
+    `;
+
+    document.getElementById('addMilestoneBtn').addEventListener('click', showAddMilestoneForm);
+    updateRewardsList();
+}
+
+
+function updateRewards() {
+    Object.entries(skills).forEach(([skillId, skill]) => {
+        const newRewards = [
+            { level: 5, name: `${skill.name} Novice`, description: `Reached level 5 in ${skill.name}` },
+            { level: 10, name: `${skill.name} Adept`, description: `Reached level 10 in ${skill.name}` },
+            { level: 20, name: `${skill.name} Expert`, description: `Reached level 20 in ${skill.name}` },
+            { level: MAX_SKILL_LEVEL, name: `${skill.name} Master`, description: `Mastered ${skill.name}` },
+        ];
+
+        newRewards.forEach(reward => {
+            if (skill.level >= reward.level && !rewards.some(r => r.name === reward.name)) {
+                rewards.push({
+                    id: generateUniqueId(),
+                    ...reward,
+                    skillId: skillId,
+                    type: 'Achievement',
+                    claimed: false
+                });
+            }
+        });
+    });
+
+    saveToLocalStorage();
+}
+
+function updateRewardsList() {
+    updateAchievementsList();
+    updateMilestonesList();
+}
+
+function updateAchievementsList() {
+    const achievementsList = document.getElementById('achievementsList');
+    if (!achievementsList) return;
+
+    achievementsList.innerHTML = `
+        <h3>Achievements</h3>
+        <div class="grid-list">
+            ${ACHIEVEMENTS.map(achievement => {
+                const isCompleted = user.achievements.includes(achievement.id);
+                return `
+                    <div class="grid-item ${isCompleted ? 'completed' : ''}">
+                        <h4>${achievement.name}</h4>
+                        <p>${achievement.description}</p>
+                        <p class="achievement-status">
+                            ${isCompleted 
+                                ? '<span class="status completed">Completed</span>' 
+                                : '<span class="status todo">Not Completed</span>'}
+                        </p>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function updateMilestonesList() {
+    const milestonesList = document.getElementById('milestonesList');
+    if (!milestonesList) return;
+
+    const milestones = rewards.filter(reward => reward.type === 'Milestone');
+
+    milestonesList.innerHTML = `
+        <h3>Milestones</h3>
+        <div class="grid-list">
+            ${milestones.map(milestone => `
+                <div class="grid-item ${milestone.claimed ? 'claimed' : ''}">
+                    <h4>${milestone.name}</h4>
+                    <p>${milestone.description}</p>
+                    <p>Required Level: ${milestone.level} in ${skills[milestone.skillId]?.name || 'Unknown Skill'}</p>
+                    ${milestone.claimed 
+                        ? '<span class="status completed">Claimed</span>' 
+                        : (skills[milestone.skillId]?.level >= milestone.level 
+                            ? `<button class="claim-btn" data-reward="${milestone.id}">Claim Reward</button>`
+                            : `<p>Keep improving your ${skills[milestone.skillId]?.name || 'skill'} to unlock!</p>`
+                          )
+                    }
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    milestonesList.querySelectorAll('.claim-btn').forEach(btn => {
+        btn.addEventListener('click', () => claimReward(btn.dataset.reward));
+    });
+}
+
+function showAddMilestoneForm() {
+    const modal = createModal('Add New Milestone', `
+        <form id="addMilestoneForm">
+            <div class="form-group">
+                <label for="milestoneName">Milestone Name:</label>
+                <input type="text" id="milestoneName" required>
+            </div>
+            <div class="form-group">
+                <label for="milestoneDescription">Description:</label>
+                <textarea id="milestoneDescription" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="milestoneSkill">Related Skill:</label>
+                <select id="milestoneSkill" required>
+                    ${Object.entries(skills).map(([id, skill]) => `<option value="${id}">${skill.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="milestoneLevel">Required Level:</label>
+                <input type="number" id="milestoneLevel" min="1" max="${MAX_SKILL_LEVEL}" required>
+            </div>
+            <button type="submit" class="action-btn">Add Milestone</button>
+        </form>
+    `);
+
+    document.getElementById('addMilestoneForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const newMilestone = {
+            id: generateUniqueId(),
+            name: document.getElementById('milestoneName').value.trim(),
+            description: document.getElementById('milestoneDescription').value.trim(),
+            skillId: document.getElementById('milestoneSkill').value,
+            level: parseInt(document.getElementById('milestoneLevel').value),
+            type: 'Milestone',
+            claimed: false
+        };
+
+        rewards.push(newMilestone);
+        saveToLocalStorage();
+        closeModal(modal);
+        updateRewardsList();
+    });
+}
+
+function claimReward(rewardId) {
+    const reward = rewards.find(r => r.id === rewardId);
+    if (!reward) return;
+
+    const skill = skills[reward.skillId];
+    if (skill && skill.level >= reward.level) {
+        reward.claimed = true;
+        alert(`Congratulations! You've claimed the reward: ${reward.name}`);
+        addXP(30);
+        saveToLocalStorage();
+        updateRewardsList();
+        updateUserInfoDisplay();
+    } else {
+        alert(`You haven't reached the required level to claim this reward yet.`);
     }
 }
 
@@ -600,10 +1163,15 @@ function checkAchievements() {
 }
 
 function updateUserInfoDisplay() {
-    document.getElementById('userName').textContent = user.name;
-    document.getElementById('userLevel').textContent = `Level ${user.level}`;
-    
+    const userNameElement = document.getElementById('userName');
+    const userLevelElement = document.getElementById('userLevel');
     const avatarImg = document.getElementById('userAvatar');
+    const xpFill = document.getElementById('xpFill');
+    const xpInfo = document.getElementById('xpInfo');
+
+    if (userNameElement) userNameElement.textContent = user.name;
+    if (userLevelElement) userLevelElement.textContent = 'Level ' + user.level;
+    
     if (avatarImg) {
         avatarImg.src = user.avatar || 'default-avatar.webp';
         avatarImg.onerror = function() {
@@ -615,40 +1183,45 @@ function updateUserInfoDisplay() {
     const nextLevelXP = LEVEL_THRESHOLDS[user.level] || user.xp;
     const xpProgress = ((user.xp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100;
     
-    const xpFill = document.getElementById('xpFill');
     if (xpFill) {
-        xpFill.style.width = `${xpProgress}%`;
+        xpFill.style.width = xpProgress + '%';
     }
     
-    const xpInfo = document.getElementById('xpInfo');
     if (xpInfo) {
-        xpInfo.textContent = `${user.xp - currentLevelXP} / ${nextLevelXP - currentLevelXP} XP`;
+        xpInfo.textContent = (user.xp - currentLevelXP) + ' / ' + (nextLevelXP - currentLevelXP) + ' XP';
     }
 }
 
-function showEditProfileForm() {
-    const modal = createModal('Edit Profile', `
-        <form id="editProfileForm">
-            <div class="form-group">
-                <label for="userNameInput">Adventurer Name:</label>
-                <input type="text" id="userNameInput" value="${user.name}" required>
-            </div>
-            <div class="form-group">
-                <label for="userAvatar">Avatar URL:</label>
-                <input type="text" id="userAvatar" value="${user.avatar || ''}">
-            </div>
-            <button type="submit" class="action-btn">Update Profile</button>
-        </form>
-    `);
+function createModal(title, content) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>${title}</h2>
+            ${content}
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
 
-    document.getElementById('editProfileForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        user.name = document.getElementById('userNameInput').value;
-        user.avatar = document.getElementById('userAvatar').value || null;
-        saveToLocalStorage();
-        updateUserInfoDisplay();
+    const closeBtn = modal.querySelector('.close');
+    closeBtn.onclick = function() {
         closeModal(modal);
-    });
+    };
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            closeModal(modal);
+        }
+    };
+
+    return modal;
+}
+
+function closeModal(modal) {
+    modal.style.display = 'none';
+    modal.remove();
 }
 
 function saveToLocalStorage() {
@@ -658,7 +1231,6 @@ function saveToLocalStorage() {
         localStorage.setItem('activities', JSON.stringify(activities));
         localStorage.setItem('quests', JSON.stringify(quests));
         localStorage.setItem('rewards', JSON.stringify(rewards));
-        console.log('Data saved to local storage successfully');
     } catch (error) {
         console.error('Error saving to local storage:', error);
     }
@@ -676,8 +1248,97 @@ function loadFromLocalStorage() {
         rewards = JSON.parse(localStorage.getItem('rewards')) || [];
 
         updateUserInfoDisplay();
-        console.log('Data loaded from local storage successfully');
     } catch (error) {
         console.error('Error loading from local storage:', error);
+    }
+}
+
+function showEditProfileForm() {
+    const modal = createModal('Edit Profile', `
+        <form id="editProfileForm">
+            <div class="form-group">
+                <label for="editUserName">Name:</label>
+                <input type="text" id="editUserName" value="${user.name}" required>
+            </div>
+            <div class="form-group">
+                <label for="editUserAvatar">Avatar URL:</label>
+                <input type="text" id="editUserAvatar" value="${user.avatar || ''}">
+            </div>
+            <button type="submit" class="action-btn">Update Profile</button>
+        </form>
+    `);
+
+    document.getElementById('editProfileForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        user.name = document.getElementById('editUserName').value.trim();
+        user.avatar = document.getElementById('editUserAvatar').value.trim();
+        saveToLocalStorage();
+        closeModal(modal);
+        updateUserInfoDisplay();
+    });
+}
+
+function showDebugOptions() {
+    const debugModal = createModal('Debug Options', `
+        <div class="debug-options">
+            <h3>Purge Data</h3>
+            <button id="purgeAllBtn" class="action-btn">Purge All Data</button>
+            <button id="purgeSkillsBtn" class="action-btn">Purge Skills</button>
+            <button id="purgeActivitiesBtn" class="action-btn">Purge Activities</button>
+            <button id="purgeQuestsBtn" class="action-btn">Purge Quests</button>
+            <button id="purgeRewardsBtn" class="action-btn">Purge Rewards</button>
+        </div>
+    `);
+
+    document.getElementById('purgeAllBtn').addEventListener('click', () => purgeData('all'));
+    document.getElementById('purgeSkillsBtn').addEventListener('click', () => purgeData('skills'));
+    document.getElementById('purgeActivitiesBtn').addEventListener('click', () => purgeData('activities'));
+    document.getElementById('purgeQuestsBtn').addEventListener('click', () => purgeData('quests'));
+    document.getElementById('purgeRewardsBtn').addEventListener('click', () => purgeData('rewards'));
+}
+
+function purgeData(dataType) {
+    if (!confirm(`Are you sure you want to purge ${dataType}? This action cannot be undone.`)) {
+        return;
+    }
+
+    switch(dataType) {
+        case 'all':
+            skills = {};
+            activities = [];
+            quests = [];
+            rewards = [];
+            user = {
+                name: "Adventurer",
+                xp: 0,
+                level: 1,
+                achievements: [],
+                avatar: 'default-avatar.webp'
+            };
+            break;
+        case 'skills':
+            skills = {};
+            break;
+        case 'activities':
+            activities = [];
+            break;
+        case 'quests':
+            quests = [];
+            break;
+        case 'rewards':
+            rewards = [];
+            break;
+    }
+
+    saveToLocalStorage();
+    alert(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} have been purged.`);
+    
+    // Refresh the current section
+    const currentSection = document.querySelector('.nav-btn.active').dataset.section;
+    loadSection(currentSection);
+    
+    // Update user info if 'all' was purged
+    if (dataType === 'all') {
+        updateUserInfoDisplay();
     }
 }
