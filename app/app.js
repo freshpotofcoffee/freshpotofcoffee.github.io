@@ -8,7 +8,7 @@ let user = {
     xp: 0,
     level: 1,
     achievements: [],
-    avatar: 'default-avatar',
+    avatar: '../public/default-avatar.webp',
     lastActivityDate: null,
     currentStreak: 0,
     longestStreak: 0

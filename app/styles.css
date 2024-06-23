@@ -1141,7 +1141,7 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 
     .hero-section {
         padding: 1rem;
-        background-image: linear-gradient(to top, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.25)), url('hero-background.webp');
+        background-image: linear-gradient(to top, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.25)), url('../public/hero-background.webp');
         background-size: cover;
         background-position: center;
         margin-left: -20px; /* Compensate for the main-content padding */
