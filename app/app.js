@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    if (!localStorage.getItem('walkthroughCompleted')) {
+    if (!localStorage.getItem('tutorialCompleted')) {
         showWelcomeModal();
     }
 });
@@ -111,36 +111,22 @@ function checkAndStartTutorial() {
     }
 }
 
-
 function showWelcomeModal() {
-    const modal = document.createElement('div');
-    modal.className = 'modal welcome-modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h2>Welcome to Skill Quest</h2>
-            <p>Embark on your personal development journey with Skill Quest. Here's how to get started:</p>
-            <ol>
-                <li>Add skills you want to improve</li>
-                <li>Create activities to practice those skills</li>
-                <li>Complete quests to challenge yourself</li>
-                <li>Track your progress and earn achievements</li>
-            </ol>
-            <button id="startTutorial" class="action-btn">Start Tutorial</button>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    modal.style.display = 'block';
+    const modal = createModal('Welcome to Habit Adventure', `
+        <p style="margin-bottom: 1rem; line-height: 1.6;">Embark on your personal development journey with Habit Adventure. Here's how to get started:</p>
+        <ol style="margin-left: 1.5rem; margin-bottom: 1.5rem;">
+            <li style="margin-bottom: 0.5rem;">Add skills you want to improve</li>
+            <li style="margin-bottom: 0.5rem;">Create activities to practice those skills</li>
+            <li style="margin-bottom: 0.5rem;">Complete quests to challenge yourself</li>
+            <li style="margin-bottom: 0.5rem;">Track your progress and earn achievements</li>
+        </ol>
+        <button id="startTutorial" class="action-btn">Start Tutorial</button>
+    `);
 
-    const startTutorialBtn = modal.querySelector('#startTutorial');
-    startTutorialBtn.addEventListener('click', function() {
-        modal.style.display = 'none';
+    document.getElementById('startTutorial').addEventListener('click', function() {
+        closeModal(modal);
         startWalkthrough();
     });
-}
-
-// Call this function when the app loads for the first time
-if (!localStorage.getItem('walkthroughCompleted')) {
-    showWelcomeModal();
 }
 
 function startWalkthrough() {
@@ -151,14 +137,16 @@ function startWalkthrough() {
     } else {
         startDesktopTutorial();
     }
-}
 
+    // Set the tutorial as completed
+    localStorage.setItem('tutorialCompleted', 'true');
+}
 
 function startMobileTutorial() {
     const tutorialSteps = [
-        { title: "Welcome to Skill Quest", description: "Let's walk through the main features of the app." },
-        { title: "Character Sheet", description: "View your progress and recent activities here." },
-        { title: "Skills", description: "Add and manage your skills in this section." },
+        { title: "Welcome to Habit Adventure", description: "Let's walk through the main features of the app." },
+        { title: "Character Sheet", description: "View your progress and recent activities." },
+        { title: "Skills", description: "Add and manage your skills." },
         { title: "Activities", description: "Create and complete activities to level up your skills." },
         { title: "Quests", description: "Take on larger challenges with quests." },
         { title: "Rewards", description: "Track your achievements and milestones." }
@@ -204,7 +192,7 @@ function startDesktopTutorial() {
         },
         {
             element: '.stats-overview',
-            intro: 'These cards show your overall progress in different areas of Skill Quest.',
+            intro: 'These cards show your overall progress in different areas of Habit Adventure.',
             position: 'bottom'
         },
         {
@@ -249,7 +237,7 @@ function startDesktopTutorial() {
         },
         {
             element: '.nav-btn[data-section="howToUse"]',
-            intro: 'If you are ever wondering how to use Skills Quest, check out this page to learn more.',
+            intro: 'If you are ever wondering how to use Habit Adventure, check out this page to learn more.',
             position: 'right'
         },
         {
@@ -274,6 +262,10 @@ function startDesktopTutorial() {
     });
 
     tour.oncomplete(function() {
+        localStorage.setItem('tutorialCompleted', 'true');
+    });
+
+    tour.onexit(function() {
         localStorage.setItem('tutorialCompleted', 'true');
     });
 
@@ -382,13 +374,13 @@ function loadHowToUseSection() {
     const mainContent = document.getElementById('mainContent');
     mainContent.innerHTML = `
         <div class="how-to-use">
-            <h2>How to Use Skill Quest</h2>
-            <p class="intro">Welcome to Skill Quest, your personal development companion. This guide will help you make the most of your journey to self-improvement.</p>
+            <h2>How to Use Habit Adventure</h2>
+            <p class="intro">Welcome to Habit Adventure, your personal development companion. This guide will help you make the most of your journey to self-improvement.</p>
             
             <section class="how-to-section">
                 <div class="section-icon"><i class="fas fa-book-open"></i></div>
                 <h3>Skills</h3>
-                <p>Skills are the core of your personal development journey in Skill Quest.</p>
+                <p>Skills are the core of your personal development journey in Habit Adventure.</p>
                 <ul>
                     <li>Add skills you want to improve or learn</li>
                     <li>Each skill can be leveled up by completing related activities</li>
@@ -444,7 +436,7 @@ function loadHowToUseSection() {
             <section class="how-to-section">
                 <div class="section-icon"><i class="fas fa-chart-line"></i></div>
                 <h3>Best Practices</h3>
-                <p>Make the most of Skill Quest with these tips:</p>
+                <p>Make the most of Habit Adventure with these tips:</p>
                 <ul>
                     <li>Update your progress regularly to stay motivated</li>
                     <li>Balance your focus across different skills</li>
