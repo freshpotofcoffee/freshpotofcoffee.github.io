@@ -8,7 +8,7 @@ let user = {
     xp: 0,
     level: 1,
     achievements: [],
-    avatar: 'default avatar',
+    avatar: 'default-avatar.webp',
     lastActivityDate: null,
     currentStreak: 0,
     longestStreak: 0
@@ -63,6 +63,15 @@ document.addEventListener("DOMContentLoaded", function() {
     const sidebar = document.querySelector('.sidebar');
     const mainContent = document.querySelector('.main-content');
     const navButtons = document.querySelectorAll('.nav-btn');
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('sidebar-open');
+        if (sidebar.classList.contains('sidebar-open')) {
+            openSidebar();
+        } else {
+            closeSidebar();
+        }
+    }
 
     if (sidebarToggle && sidebar) {
         sidebarToggle.addEventListener('click', toggleSidebar);
