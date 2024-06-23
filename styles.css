@@ -23,7 +23,7 @@ body, button, input, select, textarea {
     color: var(--text-color);
 }
 
-h1, h2, h3, h4, h5, h6, .nav-btn, .action-btn, .complete-btn, .claim-btn {
+h1, h2, h3, h4, h5, h6 {
     font-family: 'Cinzel', serif;
 }
 
@@ -119,6 +119,9 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 
 .user-details {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .user-details h2 {
@@ -159,6 +162,27 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     font-size: 0.9rem;
 }
 
+.streak-info {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.streak-info i {
+    font-size: 1.1rem;
+}
+
+.streak-info .current-streak {
+    color: #ffd700;
+}
+
+.streak-info .longest-streak {
+    color: #c0c0c0;
+}
+
 .main-nav {
     display: flex;
     flex-direction: column;
@@ -174,6 +198,9 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s ease, color 0.3s ease;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .nav-btn {
@@ -228,6 +255,7 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     padding: 2rem;
     color: white;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    margin-bottom: 2rem;
 }
 
 .hero-content {
@@ -296,7 +324,6 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 .card-content {    
     flex-grow: 1;
     overflow-y: auto;
-    padding-right: 5px;
 }
 
 .skill-entry, .quest-entry {
@@ -341,6 +368,86 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 .skill-bar {
     height: 100%;
     background-color: var(--accent-color);
+}
+
+.skill-group {
+    margin-bottom: 2rem;
+}
+
+.skill-group .skill-name {
+    font-size: 1.5rem;
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--accent-color);
+    padding-bottom: 0.5rem;
+}
+
+.skill-group .grid-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.skill-group .grid-item {
+    background-color: var(--card-background);
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: background-color 0.3s ease;
+}
+
+.skill-group .grid-item:hover {
+    background-color: var(--secondary-color);
+}
+
+.skill-group .grid-item .item-content {
+    margin-bottom: 1rem;
+}
+
+.skill-group .grid-item .skill-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.skill-group .grid-item .skill-icon {
+    font-size: 1.5rem;
+    margin-right: 0.5rem;
+    color: var(--accent-color);
+}
+
+.skill-group .grid-item h3 {
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.skill-group .grid-item .skill-progress {
+    margin-top: 0.5rem;
+}
+
+.skill-group .grid-item .progress-bar {
+    height: 6px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.skill-group .grid-item .progress-fill {
+    height: 100%;
+    background-color: var(--accent-color);
+}
+
+.skill-group .grid-item .item-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.skill-group .grid-item .item-actions button {
+    flex: 1;
 }
 
 .quest-name {
@@ -390,10 +497,12 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .section-header h2 {
+    font-size: 1.75rem;
+    color: var(--accent-color);
     margin-bottom: 0;
 }
 
@@ -404,13 +513,14 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 
 .grid-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
 }
 
 .grid-item.completed {
     background-color: rgba(76, 175, 80, 0.1);
     border: 1px solid var(--success-color);
+    position: relative;
 }
 
 .grid-item.completed::after {
@@ -425,30 +535,49 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 .grid-item {
     background-color: var(--card-background);
     border-radius: 10px;
-    padding: 1.5rem;
+    padding: 1rem;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    transition: background-color 0.3s ease;
+    height: 100%;
 }
 
 .grid-item h4 {
     font-size: 1.2rem;
-    margin-bottom: 1rem;
+    color: var(--accent-color);
+    margin-bottom: 0.5rem;
+}
+
+.grid-item .item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.grid-item .item-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.grid-item .item-actions button {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.4rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .grid-item p {
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .item-content {
     margin-bottom: 1rem;
-}
-
-.item-actions {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.5rem;
 }
 
 .complete-btn, .edit-btn, .delete-btn, .claim-btn {
@@ -457,6 +586,15 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     font-size: 0.8rem;
     padding: 0.4rem 0.8rem;
     white-space: nowrap;
+}
+
+.claim-btn {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+}
+
+.claim-btn:hover {
+    background-color: #b3915d;
 }
 
 .complete-btn { background-color: var(--success-color); color: white; }
@@ -670,7 +808,6 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     font-size: 0.8rem;
 }
 
-/* Activity Log Card */
 .dashboard-card.activity-log .activity-table {
     width: 100%;
     border-collapse: collapse;
@@ -688,7 +825,6 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     color: var(--accent-color);
 }
 
-/* Active Quests Card */
 .dashboard-card.active-quests .quest-entry {
     margin-bottom: 1rem;
     padding: 0.5rem;
@@ -726,148 +862,100 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     background-color: var(--accent-color);
 }
 
-.skill-entry, .quest-entry {
-    margin: 0 0 0.75rem 0; 
-}
-
-.skill-name, .quest-name {
-    font-weight: bold;
-    margin-bottom: 0.75rem; 
-}
-
-.skill-level, .quest-description {
-    font-size: 0.9rem;
-    color: var(--accent-color);
-    margin-bottom: 0.75rem; /* Increased from 0.5rem */
-}
-
-.skill-xp, .quest-progress {
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
-}
-
-.see-more {
-    display: inline-block;
-    margin: 0.75rem 0 0;
-    color: var(--accent-color);
-    text-decoration: none;
-    font-weight: bold;
-}
-
-.dashboard-card {
+.quest-group .grid-item {
     background-color: var(--card-background);
-    border-radius: 10px;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.dashboard-card .see-more {
-    margin-top: 1rem;
-    align-self: flex-start;
-}
-
-.card-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    max-height: 300px;
-}
-
-/* Style the main page scrollbar */
-body::-webkit-scrollbar {
-    width: 10px;
-}
-
-body::-webkit-scrollbar-track {
-    background: var(--background-color);
-}
-
-body::-webkit-scrollbar-thumb {
-    background-color: var(--accent-color);
-    border-radius: 5px;
-    border: 2px solid var(--background-color);
-}
-
-/* For Firefox */
-body {
-    scrollbar-width: thin;
-    scrollbar-color: var(--accent-color) var(--background-color);
-}
-
-/* Ensure content is fully visible */
-.skill-entry, .quest-entry, .activity-entry {
-    margin-bottom: 1rem;
-}
-
-/* Adjust grid layout for better responsiveness */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-}
-
-.skill-group {
-    margin-bottom: 2rem;
-}
-
-.skill-group .skill-name {
-    font-size: 1.5rem;
-    color: var(--accent-color);
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--accent-color);
-    padding-bottom: 0.5rem;
-}
-
-.skill-group .grid-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1rem;
-}
-
-.skill-group .grid-item {
     border-radius: 10px;
     padding: 1rem;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    transition: background-color 0.3s ease;
+    position: relative;
+    height: 100%; /* Ensure all items have the same height */
 }
 
-.skill-group .grid-item h4 {
+.quest-group .grid-item:hover {
+    background-color: var(--secondary-color);
+}
+
+.quest-group .grid-item .item-content {
+    flex-grow: 1; /* Allow content to grow and push buttons to bottom */
+    display: flex;
+    flex-direction: column;
+}
+
+.quest-group .grid-item h3 {
     font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    color: var(--accent-color);
+}
+
+.quest-group .grid-item p {
     margin-bottom: 0.5rem;
 }
 
-.skill-group .grid-item .item-content {
-    margin-bottom: 1rem;
+.quest-group .grid-item .quest-progress {
+    margin-top: auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
-.skill-group .grid-item .item-actions {
+.quest-group .grid-item .quest-progress .progress-bar {
+    width: 100%;
+    height: 6px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.quest-group .grid-item .quest-progress .progress-bar .progress-fill {
+    height: 100%;
+    background-color: var(--accent-color);
+    transition: width 0.3s ease;
+}
+
+.quest-group .grid-item .quest-progress .progress-text {
+    font-size: 0.9rem;
+    color: var(--accent-color);
+    margin-top: 0.25rem;
+    text-align: right;
+}
+
+.quest-group .grid-item .item-actions {
     display: flex;
     justify-content: space-between;
     gap: 0.5rem;
+    margin-top: 1rem;
 }
 
-.skill-group .grid-item .item-actions button {
+.quest-group .grid-item .item-actions button {
     flex: 1;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-@media (min-width: 1200px) {
-    .dashboard-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
+.grid-item.completed {
+    background-color: rgba(76, 175, 80, 0.1);
+    border: 1px solid var(--success-color);
+    position: relative;
 }
 
-@media (max-width: 1199px) and (min-width: 768px) {
-    .dashboard-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+
+.grid-item.completed::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.5rem;
+    color: var(--success-color);
 }
 
-@media (max-width: 767px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
+.grid-item.completed:hover {
+    background-color: rgba(76, 175, 80, 0.1);
 }
 
 @keyframes completeAnimation {
@@ -887,6 +975,15 @@ body {
 
 .activity-completed-animation {
     animation: completeAnimation 0.5s ease-in-out;
+}
+
+.activity-status .status.todo {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: bold;
 }
 
 @media (min-width: 1200px) {
@@ -953,4 +1050,49 @@ body {
     .card-content {
         max-height: 300px;
     }
+
+    .hero-section {
+        padding: 1rem;
+    }
+
+    .user-info {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .user-details {
+        margin-top: 1rem;
+    }
+}
+
+@media (max-width: 350px) {
+    .grid-item .item-actions {
+        flex-direction: column;
+    }
+
+    .grid-item .item-actions button {
+        width: 100%;
+    }
+}
+
+/* Style the main page scrollbar */
+body::-webkit-scrollbar {
+    width: 10px;
+}
+
+body::-webkit-scrollbar-track {
+    background: var(--background-color);
+}
+
+body::-webkit-scrollbar-thumb {
+    background-color: var(--accent-color);
+    border-radius: 5px;
+    border: 2px solid var(--background-color);
+}
+
+/* For Firefox */
+body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) var(--background-color);
 }

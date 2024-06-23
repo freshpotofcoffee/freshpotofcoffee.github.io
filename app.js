@@ -8,14 +8,16 @@ let user = {
     xp: 0,
     level: 1,
     achievements: [],
-    avatar: 'default-avatar.webp'
+    avatar: 'default-avatar.webp',
+    lastActivityDate: null,
+    currentStreak: 0,
+    longestStreak: 0
 };
 let scrollbars = {};
 
 
 const XP_PER_LEVEL = 100;
 const MAX_SKILL_LEVEL = 50;
-const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700];
 const ACHIEVEMENTS = [
     { id: 'first_skill', name: 'Skill Starter', description: 'Create your first skill', check: () => Object.keys(skills).length >= 1 },
     { id: 'five_skills', name: 'Skill Collector', description: 'Create five skills', check: () => Object.keys(skills).length >= 5 },
@@ -117,7 +119,9 @@ function loadSection(sectionName) {
 function loadOverviewSection() {
     const mainContent = document.getElementById('mainContent');
     if (!mainContent) return;
-
+    const nextLevelXP = xpForNextLevel(user.level);
+    const currentLevelXP = nextLevelXP - XP_PER_LEVEL;
+    const xpProgress = ((user.xp - currentLevelXP) / XP_PER_LEVEL) * 100;
     const masteredSkillsCount = Object.values(skills).filter(s => s.level >= MAX_SKILL_LEVEL).length;
     const totalSkills = Object.keys(skills).length;
     const completedQuests = quests.filter(q => q.completed).length;
@@ -148,28 +152,33 @@ function loadOverviewSection() {
     </div>
 `).join('');
 
-    mainContent.innerHTML = `
-        <div class="dashboard">
-            <div class="hero-section">
-                <div class="hero-content">
-                    <div class="user-info">
-                        <div class="avatar-frame">
-                            <img src="${user.avatar || 'default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
-                        </div>
-                        <div class="user-details">
-                            <h2 id="userName">${user.name}</h2>
-                            <div class="user-level">
-                                <span id="userLevel">Level ${user.level}</span>
-                                <i class="fas fa-star"></i>
-                            </div>
-                            <div class="xp-bar">
-                                <div class="xp-fill" id="xpFill" style="width: ${(user.xp / LEVEL_THRESHOLDS[user.level]) * 100}%"></div>
-                            </div>
-                            <p id="xpInfo">${user.xp} / ${LEVEL_THRESHOLDS[user.level]} XP to next level</p>
-                        </div>
+
+mainContent.innerHTML = `
+<div class="dashboard">
+    <div class="hero-section">
+        <div class="hero-content">
+            <div class="user-info">
+                <div class="avatar-frame">
+                    <img src="${user.avatar || 'default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
+                </div>
+                <div class="user-details">
+                    <h2 id="userName">${user.name}</h2>
+                    <div class="user-level">
+                        <span id="userLevel">Level ${user.level}</span>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="xp-bar">
+                        <div class="xp-fill" id="xpFill" style="width: ${xpProgress}%"></div>
+                    </div>
+                    <p id="xpInfo">${user.xp - currentLevelXP} / ${XP_PER_LEVEL} XP to next level</p>
+                    <div id="streakInfo" class="streak-info">
+                        <span class="current-streak"><i class="fas fa-fire"></i> Current: ${user.currentStreak} days</span>
+                        <span class="longest-streak"><i class="fas fa-trophy"></i> Longest: ${user.longestStreak} days</span>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
             <div class="stats-overview">
                 <div class="stat-card">
@@ -284,6 +293,14 @@ seeMoreLinks[1]?.addEventListener('click', () => loadSection('activities'));
 seeMoreLinks[2]?.addEventListener('click', () => loadSection('quests'));
 }
 
+function calculateLevel(xp) {
+    return Math.floor(xp / XP_PER_LEVEL) + 1;
+}
+
+function xpForNextLevel(level) {
+    return level * XP_PER_LEVEL;
+}
+
 function loadSkillsSection() {
     const mainContent = document.getElementById('mainContent');
     if (!mainContent) return;
@@ -293,7 +310,7 @@ function loadSkillsSection() {
             <h2>Your Skills</h2>
             <button id="addSkillBtn" class="action-btn">Add New Skill</button>
         </div>
-        <div class="grid-list" id="skillsList"></div>
+        <div id="skillsList"></div>
     `;
 
     document.getElementById('addSkillBtn')?.addEventListener('click', showAddSkillForm);
@@ -309,25 +326,38 @@ function updateSkillsList() {
         return;
     }
 
-    skillsList.innerHTML = Object.entries(skills).map(([id, skill]) => `
-    <div class="grid-item">
-        <div class="item-content">
-            <i class="fas ${skill.icon || 'fa-question'} skill-icon"></i>
-            <h3>${skill.name || 'Unnamed Skill'}</h3>
-            <p>Level ${skill.level || 1}</p>
-            <div class="item-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${((skill.xp || 0) / XP_PER_LEVEL) * 100}%"></div>
-                </div>
-                <p>${skill.xp || 0} / ${XP_PER_LEVEL} XP</p>
+    // Sort skills alphabetically
+    const sortedSkills = Object.entries(skills).sort((a, b) => a[1].name.localeCompare(b[1].name));
+
+    const html = `
+        <div class="skill-group">
+            <div class="grid-list">
+                ${sortedSkills.map(([id, skill]) => `
+                    <div class="grid-item" id="skill-${id}">
+                        <div class="item-content">
+                            <div class="skill-header">
+                                <i class="fas ${skill.icon || 'fa-question'} skill-icon"></i>
+                                <h3>${skill.name || 'Unnamed Skill'}</h3>
+                            </div>
+                            <p>Level ${skill.level || 1}</p>
+                            <div class="skill-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${((skill.xp || 0) / XP_PER_LEVEL) * 100}%"></div>
+                                </div>
+                                <p>${skill.xp || 0} / ${XP_PER_LEVEL} XP</p>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="edit-btn" data-skill="${id}">Edit</button>
+                            <button class="delete-btn" data-skill="${id}">Delete</button>
+                        </div>
+                    </div>
+                `).join('')}
             </div>
         </div>
-        <div class="item-actions">
-            <button class="edit-btn" data-skill="${id}">Edit</button>
-            <button class="delete-btn" data-skill="${id}">Delete</button>
-        </div>
-    </div>
-`).join('');
+    `;
+
+    skillsList.innerHTML = html;
 
     skillsList.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', () => showEditSkillForm(btn.dataset.skill));
@@ -488,7 +518,7 @@ function updateActivitiesList() {
                             <div class="item-content">
                                 <h4>${activity.name}</h4>
                                 <p>${activity.xp} XP</p>
-                                <p class="activity-status">${activity.completed ? '<span class="status completed">Completed</span>' : '<span class="status todo">To-Do</span>'}</p>
+                                ${!activity.completed ? '<p class="activity-status"><span class="status todo">To-Do</span></p>' : ''}
                             </div>
                             <div class="item-actions">
                                 ${activity.completed ? 
@@ -715,9 +745,37 @@ function completeActivity(activityId) {
     // Check if any quests are completed
     checkQuestsCompletion();
 
+    updateStreak();
     saveToLocalStorage();
     updateActivitiesList();
     updateUserInfoDisplay();
+}
+
+function updateStreak() {
+    const today = new Date().toDateString();
+    if (user.lastActivityDate === today) {
+        return; // Already completed an activity today
+    }
+
+    if (user.lastActivityDate === new Date(Date.now() - 86400000).toDateString()) {
+        user.currentStreak++;
+        if (user.currentStreak > user.longestStreak) {
+            user.longestStreak = user.currentStreak;
+        }
+    } else {
+        user.currentStreak = 1;
+    }
+
+    user.lastActivityDate = today;
+
+    // Award bonus XP for streaks
+    if (user.currentStreak % 7 === 0) {
+        addXP(50);
+        alert(`Congratulations! You've maintained a ${user.currentStreak}-day streak! Bonus 50 XP awarded!`);
+    } else if (user.currentStreak % 3 === 0) {
+        addXP(20);
+        alert(`Great job! You've maintained a ${user.currentStreak}-day streak! Bonus 20 XP awarded!`);
+    }
 }
 
 function checkQuestsCompletion() {
@@ -743,7 +801,7 @@ function loadQuestsSection() {
             <h2>Your Quests</h2>
             <button id="addQuestBtn" class="action-btn">Add New Quest</button>
         </div>
-        <div class="grid-list" id="questsList"></div>
+        <div id="questsList" class="quest-group"></div>
     `;
 
     document.getElementById('addQuestBtn')?.addEventListener('click', showAddQuestForm);
@@ -759,22 +817,26 @@ function updateQuestsList() {
         return;
     }
 
-    questsList.innerHTML = quests.map(quest => {
-        const completedActivities = quest.activities.filter(actId => 
-            activities.find(a => a.id === actId && a.completed)
-        ).length;
-        const totalActivities = quest.activities.length;
-        const isCompleted = completedActivities === totalActivities;
-        const progressPercentage = (completedActivities / totalActivities) * 100;
+    questsList.innerHTML = `
+        <div class="grid-list">
+            ${quests.map(quest => {
+                const completedActivities = quest.activities.filter(actId => 
+                    activities.find(a => a.id === actId && a.completed)
+                ).length;
+                const totalActivities = quest.activities.length;
+                const isCompleted = completedActivities === totalActivities;
+                const progressPercentage = (completedActivities / totalActivities) * 100;
 
-        return `
-            <div class="grid-item ${quest.completed ? 'completed' : ''}" id="quest-${quest.id}">
+                return `
+                <div class="grid-item ${quest.completed ? 'completed' : ''}" id="quest-${quest.id}">
                 <div class="item-content">
                     <h3>${quest.name}</h3>
                     <p>${quest.description}</p>
-                    <p>Progress: ${completedActivities}/${totalActivities} activities</p>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${progressPercentage}%"></div>
+                    <div class="quest-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progressPercentage}%;"></div>
+                        </div>
+                        <p class="progress-text">${completedActivities} / ${totalActivities} activities</p>
                     </div>
                     <p>Reward: ${quest.reward || 'None'}</p>
                 </div>
@@ -786,8 +848,10 @@ function updateQuestsList() {
                     <button class="delete-btn" data-quest="${quest.id}">Delete</button>
                 </div>
             </div>
-        `;
-    }).join('');
+            `;
+            }).join('')}
+        </div>
+    `;
 
     questsList.querySelectorAll('.claim-btn').forEach(btn => {
         btn.addEventListener('click', () => claimQuestReward(btn.dataset.quest));
@@ -1031,14 +1095,15 @@ function updateAchievementsList() {
             ${ACHIEVEMENTS.map(achievement => {
                 const isCompleted = user.achievements.includes(achievement.id);
                 return `
-                    <div class="grid-item ${isCompleted ? 'completed' : ''}">
-                        <h4>${achievement.name}</h4>
-                        <p>${achievement.description}</p>
-                        <p class="achievement-status">
-                            ${isCompleted 
-                                ? '<span class="status completed">Completed</span>' 
-                                : '<span class="status todo">Not Completed</span>'}
-                        </p>
+                    <div class="grid-item ${isCompleted ? 'completed' : ''}" id="achievement-${achievement.id}">
+                        <div class="item-content">
+                            <h4>${achievement.name}</h4>
+                            <p>${achievement.description}</p>
+                        </div>
+                        ${!isCompleted ? 
+                            '<div class="item-actions"><p class="achievement-status"><span class="status todo">Not Completed</span></p></div>' : 
+                            ''
+                        }
                     </div>
                 `;
             }).join('')}
@@ -1056,17 +1121,21 @@ function updateMilestonesList() {
         <h3>Milestones</h3>
         <div class="grid-list">
             ${milestones.map(milestone => `
-                <div class="grid-item ${milestone.claimed ? 'claimed' : ''}">
-                    <h4>${milestone.name}</h4>
-                    <p>${milestone.description}</p>
-                    <p>Required Level: ${milestone.level} in ${skills[milestone.skillId]?.name || 'Unknown Skill'}</p>
-                    ${milestone.claimed 
-                        ? '<span class="status completed">Claimed</span>' 
-                        : (skills[milestone.skillId]?.level >= milestone.level 
-                            ? `<button class="claim-btn" data-reward="${milestone.id}">Claim Reward</button>`
-                            : `<p>Keep improving your ${skills[milestone.skillId]?.name || 'skill'} to unlock!</p>`
-                          )
-                    }
+                <div class="grid-item ${milestone.claimed ? 'completed' : ''}" id="milestone-${milestone.id}">
+                    <div class="item-content">
+                        <h4>${milestone.name}</h4>
+                        <p>${milestone.description}</p>
+                        <p>Required Level: ${milestone.level} in ${skills[milestone.skillId]?.name || 'Unknown Skill'}</p>
+                    </div>
+                    <div class="item-actions">
+                        ${milestone.claimed 
+                            ? ''  // Remove the "Claimed" text
+                            : (skills[milestone.skillId]?.level >= milestone.level 
+                                ? `<button class="claim-btn" data-reward="${milestone.id}">Claim Reward</button>`
+                                : `<p>Keep improving your ${skills[milestone.skillId]?.name || 'skill'} to unlock!</p>`
+                              )
+                        }
+                    </div>
                 </div>
             `).join('')}
         </div>
@@ -1139,8 +1208,14 @@ function claimReward(rewardId) {
 }
 
 function addXP(amount) {
+    const oldLevel = user.level;
     user.xp += amount;
-    checkLevelUp();
+    user.level = calculateLevel(user.xp);
+    
+    if (user.level > oldLevel) {
+        alert(`Congratulations! You've reached level ${user.level}!`);
+    }
+    
     checkAchievements();
     updateUserInfoDisplay();
     saveToLocalStorage();
@@ -1179,16 +1254,16 @@ function updateUserInfoDisplay() {
         };
     }
     
-    const currentLevelXP = LEVEL_THRESHOLDS[user.level - 1] || 0;
-    const nextLevelXP = LEVEL_THRESHOLDS[user.level] || user.xp;
-    const xpProgress = ((user.xp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100;
+    const nextLevelXP = xpForNextLevel(user.level);
+    const currentLevelXP = nextLevelXP - XP_PER_LEVEL;
+    const xpProgress = ((user.xp - currentLevelXP) / XP_PER_LEVEL) * 100;
     
     if (xpFill) {
         xpFill.style.width = xpProgress + '%';
     }
     
     if (xpInfo) {
-        xpInfo.textContent = (user.xp - currentLevelXP) + ' / ' + (nextLevelXP - currentLevelXP) + ' XP';
+        xpInfo.textContent = `${user.xp - currentLevelXP} / ${XP_PER_LEVEL} XP to next level`;
     }
 }
 
