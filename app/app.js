@@ -41,7 +41,7 @@ document.getElementById('helpBtn').addEventListener('click', startWalkthrough);
 document.addEventListener("DOMContentLoaded", function() {
     loadFromLocalStorage();
     initializeDashboard();
-    updateUserInfoDisplay(); 
+    updateUserInfoDisplay();
 
     const settingsBtn = document.getElementById('settingsBtn');
     if (settingsBtn) {
@@ -91,16 +91,23 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     function toggleSidebar() {
-        const sidebar = document.querySelector('.sidebar');
-        if (sidebar.classList.contains('sidebar-open')) {
-            closeSidebar();
-            document.body.style.overflow = ''; // Restore scrolling when menu is closed
-        } else {
-            openSidebar();
-            document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
-        }
+        sidebar.classList.toggle('sidebar-open');
     }
+
+    if (!localStorage.getItem('tutorialCompleted')) {
+        startWalkthrough();
+    }
+
+    checkAndStartTutorial();
 });
+
+function checkAndStartTutorial() {
+    const tutorialCompleted = localStorage.getItem('tutorialCompleted');
+    if (tutorialCompleted !== 'true') {
+        startWalkthrough();
+    }
+}
+
 
 function showWelcomeModal() {
     const modal = document.createElement('div');
@@ -135,9 +142,50 @@ if (!localStorage.getItem('walkthroughCompleted')) {
 function startWalkthrough() {
     const isMobile = window.innerWidth <= 768;
     
-    // Force open the sidebar before starting the tutorial
-    openSidebar();
-    
+    if (isMobile) {
+        startMobileTutorial();
+    } else {
+        startDesktopTutorial();
+    }
+}
+
+function startMobileTutorial() {
+    const tutorialSteps = [
+        { title: "Welcome to Skill Quest", description: "Let's walk through the main features of the app." },
+        { title: "Character Sheet", description: "View your progress and recent activities here." },
+        { title: "Skills", description: "Add and manage your skills in this section." },
+        { title: "Activities", description: "Create and complete activities to level up your skills." },
+        { title: "Quests", description: "Take on larger challenges with quests." },
+        { title: "Rewards", description: "Track your achievements and milestones." }
+    ];
+
+    let currentStep = 0;
+    const overlay = document.getElementById('tutorialOverlay');
+    const title = document.getElementById('tutorialTitle');
+    const description = document.getElementById('tutorialDescription');
+    const nextButton = document.getElementById('tutorialNext');
+
+    function showStep() {
+        if (currentStep < tutorialSteps.length) {
+            overlay.style.display = 'block';
+            title.textContent = tutorialSteps[currentStep].title;
+            description.textContent = tutorialSteps[currentStep].description;
+            nextButton.textContent = currentStep === tutorialSteps.length - 1 ? 'Finish' : 'Next';
+        } else {
+            overlay.style.display = 'none';
+            localStorage.setItem('tutorialCompleted', 'true');
+        }
+    }
+
+    nextButton.addEventListener('click', () => {
+        currentStep++;
+        showStep();
+    });
+
+    showStep();
+}
+
+function startDesktopTutorial() {
     const steps = [
         {
             element: '#userAvatar',
@@ -157,7 +205,7 @@ function startWalkthrough() {
         {
             element: '.dashboard-card.top-skills',
             intro: 'Here you can see your top skills. Focus on these to level up faster!',
-            position: isMobile ? 'bottom' : 'left'
+            position: 'left'
         },
         {
             element: '.dashboard-card.activity-log',
@@ -167,7 +215,7 @@ function startWalkthrough() {
         {
             element: '.dashboard-card.active-quests',
             intro: 'These are your active quests. Complete them to earn bonus rewards!',
-            position: isMobile ? 'bottom' : 'right'
+            position: 'right'
         },
         {
             element: '.nav-btn[data-section="overview"]',
@@ -213,50 +261,18 @@ function startWalkthrough() {
         disableInteraction: false,
         highlightClass: 'introjs-custom-highlight',
         tooltipClass: 'introjs-custom-tooltip',
-        nextLabel: isMobile ? 'Next' : 'Next →',
-        prevLabel: isMobile ? 'Back' : '← Back',
+        nextLabel: 'Next →',
+        prevLabel: '← Back',
         doneLabel: 'Finish',
         skipLabel: '×',
-        scrollToElement: true,
-        scrollPadding: isMobile ? 20 : 50,
-        tooltipPosition: isMobile ? 'bottom' : 'auto',
-        beforeChange: function(targetElement) {
-            // Ensure sidebar stays open throughout the tutorial
-            openSidebar();
-            
-            // Scroll to the element
-            targetElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
-        },
-        onafterchange: function(targetElement) {
-            // Check tooltip visibility
-            setTimeout(() => {
-                const tooltip = document.querySelector('.introjs-tooltip');
-                if (tooltip) {
-                    const rect = tooltip.getBoundingClientRect();
-                    if (rect.top < 0 || rect.bottom > window.innerHeight) {
-                        tooltip.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
-                        });
-                    }
-                }
-            }, 100);
-        }
+        scrollToElement: true
     });
 
-    tour.oncomplete(() => {
-        localStorage.setItem('walkthroughCompleted', 'true');
-        if (isMobile) {
-            closeSidebar();
-        }
-    }).onexit(() => {
-        if (isMobile) {
-            closeSidebar();
-        }
-    }).start();
+    tour.oncomplete(function() {
+        localStorage.setItem('tutorialCompleted', 'true');
+    });
+
+    tour.start();
 }
 
 function openSidebar() {

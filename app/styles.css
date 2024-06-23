@@ -58,16 +58,73 @@ h1, h2, h3, h4, h5, h6 {
     left: 0;
     top: 0;
     overflow-y: auto;
-    transition: transform 0.3s ease;
-    z-index: 1000;
     transition: transform 0.3s ease, left 0.3s ease;
+    z-index: 1000;
+}
+
+.sidebar.sidebar-open {
+    transform: translateX(0) !important;
+    left: 0 !important;
 }
 
 .sidebar-actions {
     display: flex;
     justify-content: space-around;
-    padding: 1rem 0;
+    padding-top: 1rem;
     border-top: 1px solid var(--secondary-color);
+    margin-top: auto;
+}
+
+.tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    display: none;
+}
+
+.tutorial-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--background-color);
+    padding: 2rem;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 90%;
+    width: 90%;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.tutorial-content h2 {
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.tutorial-content p {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.tutorial-content .action-btn {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.tutorial-content .action-btn:hover {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
 }
 
 .header {
@@ -230,8 +287,8 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 
 .main-content {
     flex-grow: 1;
-    padding: 1rem;
     margin-left: var(--sidebar-width);
+    padding: 1rem;
     transition: margin-left 0.3s ease;
 }
 
@@ -994,16 +1051,6 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 
 .sidebar-toggle {
     display: none;
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    z-index: 1001;
-    background: var(--primary-color);
-    border: none;
-    color: var(--text-color);
-    padding: 10px 15px;
-    border-radius: 5px;
-    font-size: 1.2rem;
 }
 
 /* Scrollbar styles */
@@ -1267,6 +1314,34 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     color: var(--accent-color);
 }
 
+.version-info {
+    margin-top: auto;
+    padding: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--accent-color);
+}
+
+.version-label {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.2rem;
+}
+
+.version-number {
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .version-info {
+        font-size: 0.7rem;
+        padding: 0.3rem;
+    }
+}
+
 @media (max-width: 768px) {
     .how-to-use {
         padding: 1rem;
@@ -1331,18 +1406,9 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     }
 
     .sidebar {
-        width: 100%;
-        height: 100vh;
-        position: fixed;
-        top: 0;
-        left: -100%;
-        z-index: 1000;
-        overflow-y: auto;
         transform: translateX(-100%);
-        transition: transform 0.3s ease;
-        background-color: var(--background-color);
-        padding-top: 80px; /* Add space for the toggle button */
-        z-index: 1000;
+        width: 100%;
+        left: -100%;
     }
 
     .sidebar-open {
@@ -1350,14 +1416,15 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     }
 
     .sidebar.sidebar-open {
-        transform: translateX(0) !important;
+        transform: translateX(0);
+        left: 0;
     }
 
     .sidebar-toggle {
         display: block;
         position: fixed;
         top: 10px;
-        left: 20px; /* Moved from 10px to 20px */
+        left: 10px;
         z-index: 1001;
         background: var(--accent-color);
         border: none;
@@ -1365,19 +1432,34 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
         padding: 10px 15px;
         border-radius: 5px;
         font-size: 1.2rem;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        z-index: 1001;
     }
 
     .sidebar .header {
         padding-top: 20px; /* Add some top padding */
     }
 
+    .tutorial-content {
+        padding: 1.5rem;
+        max-width: 95%;
+        width: 95%;
+    }
+
+    .tutorial-content h2 {
+        font-size: 1.3rem;
+    }
+
+    .tutorial-content p {
+        font-size: 0.9rem;
+    }
+
+    .tutorial-content .action-btn {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+    }
+
     .main-content {
         margin-left: 0;
-        padding-left: 20px; /* Add left padding to align with the menu button */
-        padding-right: 20px; /* Add right padding for symmetry */
-        padding-top: 70px; /* Increased from 60px to 70px */
+        padding-top: calc(var(--sidebar-mobile-height) + 1rem);
     }
 
     .main-content form {

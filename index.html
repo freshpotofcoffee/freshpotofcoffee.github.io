@@ -3,67 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Skill Quest</title>
+    <title>Skill Quest - Embark on Your Adventure</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="public/landing-styles.css">
 </head>
 <body>
-    <header>
-        <nav>
-            <div class="logo">
-                <img src="public/skills-quest-logo.png" alt="Skill Quest Logo">
-                <h1>Skill Quest</h1>
+    <button id="sidebarToggle" class="sidebar-toggle">☰</button>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="header">
+                <img src="public/skills-quest-logo.png" alt="Skill Quest Logo" class="logo">
             </div>
-            <ul>
-                <li><a href="#about">About</a></li>
-                <li><a href="#features">Features</a></li>
-                <li><a href="app/index.html" class="cta-button">Get Started</a></li>
-            </ul>
-        </nav>
-    </header>
-
-    <main>
-        <section id="hero">
-            <h2>Embark on Your Personal Development Journey</h2>
-            <p>Level up your skills, complete quests, and achieve your goals with Skill Quest</p>
-            <a href="app/index.html" class="cta-button">Start Your Quest</a>
-        </section>
-
-        <section id="about">
-            <h2>About Skill Quest</h2>
-            <p>Skill Quest is an innovative app designed to gamify your personal development journey. Track your progress, set goals, and watch yourself grow in a fun, engaging way.</p>
-        </section>
-
-        <section id="features">
-            <h2>Features</h2>
-            <div class="feature-grid">
-                <div class="feature-item">
-                    <i class="fas fa-tasks"></i>
-                    <h3>Skill Tracking</h3>
-                    <p>Monitor and level up your skills as you progress</p>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-map-marked-alt"></i>
-                    <h3>Quests</h3>
-                    <p>Complete quests to challenge yourself and earn rewards</p>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-chart-line"></i>
-                    <h3>Progress Visualization</h3>
-                    <p>See your growth with intuitive charts and statistics</p>
-                </div>
-                <div class="feature-item">
-                    <i class="fas fa-trophy"></i>
-                    <h3>Achievements</h3>
-                    <p>Unlock achievements as you reach milestones</p>
-                </div>
+            <nav class="main-nav">
+                <button class="nav-btn" data-section="about"><i class="fas fa-info-circle"></i> About</button>
+                <button class="nav-btn" data-section="features"><i class="fas fa-star"></i> Features</button>
+                <button class="nav-btn" data-section="getStarted"><i class="fas fa-play"></i> Get Started</button>
+            </nav>
+            <div class="sidebar-actions">
+                <p class="version-info">Landing Page v1.1</p>
             </div>
-        </section>
-    </main>
+        </aside>
 
-    <footer>
-        <p>&copy; 2024 Skill Quest. All rights reserved.</p>
-    </footer>
+        <main class="main-content">
+            <section id="hero" class="hero-section">
+                <div class="hero-content">
+                    <h1>Embark on Your Skill Quest</h1>
+                    <p>Level up your life, one skill at a time</p>
+                    <a href="app/index.html" class="cta-button">Start Your Adventure</a>
+                </div>
+            </section>
+
+            <div class="content-wrapper">
+                <section id="about">
+                    <div class="section-header">
+                        <h2>About Skill Quest</h2>
+                    </div>
+                    <p>Skill Quest transforms your personal growth journey into an epic adventure. Set goals, track progress, and watch yourself evolve in a fun, engaging way.</p>
+                </section>
+
+                <section id="features">
+                    <div class="section-header">
+                        <h2>Key Features</h2>
+                    </div>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <div class="feature-item-content">
+                                <i class="fas fa-chart-line"></i>
+                                <h3>Skill Tracking</h3>
+                                <p>Monitor and level up your skills as you progress</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-item-content">
+                                <i class="fas fa-chart-line"></i>
+                                <h3>Custom Quests</h3>
+                                <p>Create and complete quests to challenge yourself</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-item-content">
+                                <i class="fas fa-chart-line"></i>
+                                <h3>Achievements</h3>
+                                <p>Unlock achievements as you reach milestones</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-item-content">
+                                <i class="fas fa-chart-line"></i>
+                                <h3>Mobile Friendly</h3>
+                                <p>Access your quests anytime, anywhere</p>
+                            </div>
+                        </div>
+                        <div class="feature-item coming-soon">
+                            <div class="feature-item-content">
+                                <i class="fas fa-chart-bar"></i>
+                                <h3>Progress Analytics</h3>
+                                <p>Visualize your growth with detailed statistics and insights</p>
+                            </div>
+                            <span class="coming-soon-tag">Coming Soon</span>
+                        </div>
+                        <div class="feature-item coming-soon">
+                            <div class="feature-item-content">
+                                <i class="fas fa-sync-alt"></i>
+                                <h3>Cross-Device Sync</h3>
+                                <p>Log in to an account and access your data across all your devices</p>
+                            </div>
+                            <span class="coming-soon-tag">Coming Soon</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="getStarted">
+                    <div class="section-header">
+                        <h2>Ready to Begin?</h2>
+                    </div>
+                    <p>Your journey to self-improvement starts here. Join Skill Quest and transform your goals into achievements.</p>
+                    <a href="app/index.html" class="cta-button">Launch Skill Quest</a>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="public/landing-script.js"></script>
 </body>
 </html>

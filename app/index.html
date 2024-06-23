@@ -7,11 +7,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/5.1.0/introjs.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/5.1.0/intro.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/5.1.0/intro.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button id="sidebarToggle" class="sidebar-toggle">☰</button>
     <div class="app-container">
         <aside class="sidebar">
             <div class="header">
@@ -29,15 +29,25 @@
                 <button id="homeBtn" class="icon-btn" title="Home"><i class="fas fa-home"></i></button>
                 <button id="helpBtn" class="icon-btn" title="Help"><i class="fas fa-question-circle"></i></button>
                 <button id="settingsBtn" class="icon-btn" title="Settings"><i class="fas fa-cog"></i></button>
-                <p>Version 0.4.7.3</p>
+                <div class="version-info">
+                    <span class="version-label">Version</span>
+                    <span class="version-number">0.4.7.3</span>
+                </div>
             </div>
         </aside>
 
         <main class="main-content">
             <section id="mainContent">
-                <!-- This will be dynamically filled based on the selected section -->
             </section>
         </main>
+    </div>
+
+    <div id="tutorialOverlay" class="tutorial-overlay">
+        <div class="tutorial-content">
+            <h2 id="tutorialTitle"></h2>
+            <p id="tutorialDescription"></p>
+            <button id="tutorialNext" class="action-btn">Next</button>
+        </div>
     </div>
 
     <script src="app.js"></script>
