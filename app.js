@@ -47,6 +47,46 @@ document.addEventListener("DOMContentLoaded", function() {
     } else {
         console.error('Settings button not found');
     }
+
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const navButtons = document.querySelectorAll('.nav-btn');
+
+    sidebarToggle.addEventListener('click', toggleSidebar);
+
+    navButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            loadSection(button.dataset.section);
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+        });
+    });
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('sidebar-open');
+        if (sidebar.classList.contains('sidebar-open')) {
+            sidebar.style.transform = 'translateX(0)';
+            document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+        } else {
+            sidebar.style.transform = 'translateX(-100%)';
+            document.body.style.overflow = ''; // Restore scrolling when menu is closed
+        }
+    }
+});
+
+document.addEventListener('click', function(event) {
+    const isClickInsideSidebar = sidebar.contains(event.target);
+    const isClickOnToggleButton = event.target === sidebarToggle;
+    
+    if (!isClickInsideSidebar && !isClickOnToggleButton && sidebar.classList.contains('sidebar-open')) {
+        toggleSidebar();
+    }
+});
+
+sidebar.addEventListener('click', function(event) {
+    event.stopPropagation();
 });
 
 function showSettingsMenu() {
@@ -299,6 +339,16 @@ function calculateLevel(xp) {
 
 function xpForNextLevel(level) {
     return level * XP_PER_LEVEL;
+}
+
+function openModal(modal) {
+    modal.style.display = 'block';
+    document.body.classList.add('modal-open');
+}
+
+function closeModal(modal) {
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
 }
 
 function loadSkillsSection() {

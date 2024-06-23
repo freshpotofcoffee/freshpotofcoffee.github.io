@@ -8,6 +8,8 @@
     --card-background: rgba(74, 53, 34, 0.7);
     --success-color: #4caf50;
     --error-color: #f44336;
+    --sidebar-width: 250px;
+    --sidebar-mobile-height: 60px;
 }
 
 * {
@@ -45,15 +47,19 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar {
-    width: 250px;
+    width: var(--sidebar-width);
     background-color: var(--sidebar-color);
     padding: 1rem;
     display: flex;
     flex-direction: column;
     border-right: 2px solid var(--secondary-color);
     height: 100vh;
-    position: sticky;
+    position: fixed;
+    left: 0;
     top: 0;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    z-index: 1000;
 }
 
 .sidebar-actions {
@@ -224,8 +230,8 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 .main-content {
     flex-grow: 1;
     padding: 1rem;
-    height: 100vh;
-    overflow-y: auto;
+    margin-left: var(--sidebar-width);
+    transition: margin-left 0.3s ease;
 }
 
 .icon-btn {
@@ -250,12 +256,11 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 .hero-section {
     background-image: linear-gradient(to right, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.25)), url('hero-background.webp');
     background-size: cover;
-    background-position: 25% 75%;
+    background-position: center;
     border-radius: 15px;
     padding: 2rem;
     color: white;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-    margin-bottom: 2rem;
 }
 
 .hero-content {
@@ -659,6 +664,7 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
+    z-index: 1101; /* Slightly higher than modal-content */
 }
 
 .close:hover,
@@ -870,7 +876,7 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     flex-direction: column;
     transition: background-color 0.3s ease;
     position: relative;
-    height: 100%; /* Ensure all items have the same height */
+    height: 100%;
 }
 
 .quest-group .grid-item:hover {
@@ -878,7 +884,7 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 }
 
 .quest-group .grid-item .item-content {
-    flex-grow: 1; /* Allow content to grow and push buttons to bottom */
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
 }
@@ -944,7 +950,6 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     position: relative;
 }
 
-
 .grid-item.completed::after {
     content: '✓';
     position: absolute;
@@ -986,6 +991,40 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     font-weight: bold;
 }
 
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1001;
+    background: var(--primary-color);
+    border: none;
+    color: var(--text-color);
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 1.2rem;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--accent-color);
+    border-radius: 5px;
+    border: 2px solid var(--background-color);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) var(--background-color);
+}
+
 @media (min-width: 1200px) {
     .dashboard-grid {
         grid-template-columns: 1fr 1fr 1fr;
@@ -1008,22 +1047,106 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 
     .sidebar {
         width: 100%;
-        height: auto;
-        border-right: none;
-        border-bottom: 2px solid var(--secondary-color);
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        background-color: var(--background-color);
+        padding-top: 80px; /* Add space for the toggle button */
+        z-index: 1000;
+    }
+
+    .sidebar.sidebar-open {
+        transform: translateX(0);
+    }
+
+    .sidebar-toggle {
+        display: block;
+        position: fixed;
+        top: 10px;
+        left: 20px; /* Moved from 10px to 20px */
+        z-index: 1001;
+        background: var(--accent-color);
+        border: none;
+        color: var(--primary-color);
+        padding: 10px 15px;
+        border-radius: 5px;
+        font-size: 1.2rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1001;
+    }
+
+    .sidebar .header {
+        padding-top: 20px; /* Add some top padding */
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding-left: 20px; /* Add left padding to align with the menu button */
+        padding-right: 20px; /* Add right padding for symmetry */
+        padding-top: 70px; /* Increased from 60px to 70px */
+    }
+
+    .main-content form {
+        position: relative;
+        z-index: 1002; /* Higher than the sidebar and toggle */
+    }
+
+    select, .dropdown-content {
+        position: relative;
+        z-index: 1002;
     }
 
     .main-nav {
-        flex-direction: row;
-        overflow-x: auto;
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
     }
 
     .nav-btn {
-        flex: 1;
+        width: 100%;
+        padding: 15px;
+        margin-bottom: 10px;
+        text-align: left;
+        font-size: 1.2rem;
+    }
+
+    .user-info {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .avatar-frame {
+        width: 80px;
+        height: 80px;
+    }
+
+    .hero-section {
+        padding: 1rem;
+        background-image: linear-gradient(to top, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.25)), url('hero-background.webp');
+        background-size: cover;
+        background-position: center;
+        margin-left: -20px; /* Compensate for the main-content padding */
+        margin-right: -20px; /* Compensate for the main-content padding */
+        padding-left: 20px; /* Add padding inside the hero section */
+        padding-right: 20px; /* Add padding inside the hero section */
+        margin-top: -70px; /* Offset the padding-top of main-content */
+        padding-top: 70px; /* Add back the space for the toggle button */
     }
 
     .stats-overview {
         flex-direction: column;
+    }
+
+    .stat-card {
+        margin-bottom: 1rem;
     }
 
     .dashboard-grid {
@@ -1040,29 +1163,59 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 
     .complete-btn, .edit-btn, .delete-btn, .claim-btn {
         width: 100%;
+        margin-bottom: 0.5rem;
     }
 
-    .dashboard-card {
-        max-height: none;
-        height: auto;
+    .modal-content {
+        margin: 30% auto; /* Increase this value to move the modal further down */
+        width: 90%; /* Make it slightly narrower on mobile */
+        max-width: none; /* Remove max-width constraint on mobile */
     }
 
-    .card-content {
-        max-height: 300px;
+    .modal {
+        overflow-y: auto;
     }
 
+    body.modal-open {
+        padding-bottom: 50vh;
+    }
+}
+
+@media (max-width: 480px) {
     .hero-section {
-        padding: 1rem;
+        padding: 0.5rem;
     }
 
     .user-info {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
+        font-size: 0.9rem;
     }
 
-    .user-details {
-        margin-top: 1rem;
+    .stat-card h3 {
+        font-size: 1rem;
+    }
+
+    .grid-item h4 {
+        font-size: 1rem;
+    }
+
+    .grid-item p {
+        font-size: 0.9rem;
+    }
+
+    body, button, input, select, textarea {
+        font-size: 14px;
+    }
+
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.25rem; }
+
+    .section-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .dashboard-card h3 {
+        font-size: 1.2rem;
     }
 }
 
@@ -1076,23 +1229,64 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     }
 }
 
-/* Style the main page scrollbar */
-body::-webkit-scrollbar {
-    width: 10px;
+/* Improve touch targets for mobile */
+@media (max-width: 768px) {
+    .nav-btn, .action-btn, .complete-btn, .edit-btn, .delete-btn, .claim-btn {
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+    }
+
+    .icon-btn {
+        font-size: 1.5rem;
+        padding: 0.5rem;
+    }
+
+    .close {
+        font-size: 2rem;
+        padding: 0.5rem;
+    }
 }
 
-body::-webkit-scrollbar-track {
-    background: var(--background-color);
+/* Improve form usability on mobile */
+@media (max-width: 768px) {
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        margin-bottom: 0.75rem;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="password"],
+    .form-group select,
+    .form-group textarea {
+        padding: 0.75rem;
+        font-size: 16px; /* Prevents zoom on focus in iOS */
+    }
 }
 
-body::-webkit-scrollbar-thumb {
-    background-color: var(--accent-color);
-    border-radius: 5px;
-    border: 2px solid var(--background-color);
+/* Enhance modal usability on mobile */
+@media (max-width: 768px) {
+    .modal-content {
+        padding: 1.5rem;
+    }
+
+    .close {
+        top: 10px;
+        right: 10px;
+    }
 }
 
-/* For Firefox */
-body {
-    scrollbar-width: thin;
-    scrollbar-color: var(--accent-color) var(--background-color);
+/* Improve table readability on mobile */
+@media (max-width: 768px) {
+    .activity-table {
+        font-size: 0.9rem;
+    }
+
+    .activity-table th,
+    .activity-table td {
+        padding: 0.5rem 0.25rem;
+    }
 }
