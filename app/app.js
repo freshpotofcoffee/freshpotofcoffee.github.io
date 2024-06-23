@@ -93,8 +93,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function toggleSidebar() {
         const sidebar = document.querySelector('.sidebar');
         if (sidebar.classList.contains('sidebar-open')) {
-            sidebar.classList.remove('sidebar-open');
-            sidebar.style.transform = 'translateX(-100%)';
+            closeSidebar();
             document.body.style.overflow = ''; // Restore scrolling when menu is closed
         } else {
             openSidebar();
@@ -135,10 +134,10 @@ if (!localStorage.getItem('walkthroughCompleted')) {
 
 function startWalkthrough() {
     const isMobile = window.innerWidth <= 768;
-
-        // Force open the sidebar before starting the tutorial
-        openSidebar();
-        
+    
+    // Force open the sidebar before starting the tutorial
+    openSidebar();
+    
     const steps = [
         {
             element: '#userAvatar',
@@ -158,7 +157,7 @@ function startWalkthrough() {
         {
             element: '.dashboard-card.top-skills',
             intro: 'Here you can see your top skills. Focus on these to level up faster!',
-            position: 'left'
+            position: isMobile ? 'bottom' : 'left'
         },
         {
             element: '.dashboard-card.activity-log',
@@ -168,7 +167,7 @@ function startWalkthrough() {
         {
             element: '.dashboard-card.active-quests',
             intro: 'These are your active quests. Complete them to earn bonus rewards!',
-            position: 'right'
+            position: isMobile ? 'bottom' : 'right'
         },
         {
             element: '.nav-btn[data-section="overview"]',
@@ -203,25 +202,15 @@ function startWalkthrough() {
         {
             element: '#settingsBtn',
             intro: 'Finally, go here to adjust your settings. You can change your name, picture, and purge your data right here.',
-            position: 'right'
+            position: 'left'
         }
     ];
-
-    if (isMobile) {
-        steps.forEach(step => {
-            if (step.position === 'right' || step.position === 'left') {
-                step.position = 'bottom';
-            }
-        });
-    }
-
-    let currentStep = 0;
 
     const tour = introJs().setOptions({
         steps: steps,
         exitOnOverlayClick: false,
         exitOnEsc: false,
-        disableInteraction: false,  // Changed to false to allow interaction
+        disableInteraction: false,
         highlightClass: 'introjs-custom-highlight',
         tooltipClass: 'introjs-custom-tooltip',
         nextLabel: isMobile ? 'Next' : 'Next →',
@@ -232,8 +221,6 @@ function startWalkthrough() {
         scrollPadding: isMobile ? 20 : 50,
         tooltipPosition: isMobile ? 'bottom' : 'auto',
         beforeChange: function(targetElement) {
-            currentStep = this._currentStep;
-            
             // Ensure sidebar stays open throughout the tutorial
             openSidebar();
             
@@ -262,12 +249,12 @@ function startWalkthrough() {
 
     tour.oncomplete(() => {
         localStorage.setItem('walkthroughCompleted', 'true');
+        if (isMobile) {
+            closeSidebar();
+        }
     }).onexit(() => {
-        // Close the sidebar when the tutorial ends or is exited
-        const sidebar = document.querySelector('.sidebar');
-        if (sidebar) {
-            sidebar.classList.remove('sidebar-open');
-            sidebar.style.transform = 'translateX(-100%)';
+        if (isMobile) {
+            closeSidebar();
         }
     }).start();
 }
@@ -278,9 +265,22 @@ function openSidebar() {
     if (sidebar) {
         sidebar.classList.add('sidebar-open');
         sidebar.style.transform = 'translateX(0)';
-        sidebar.style.left = '0';  // Add this line
+        sidebar.style.left = '0';
         if (sidebarToggle) {
             sidebarToggle.classList.add('active');
+        }
+    }
+}
+
+function closeSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    if (sidebar) {
+        sidebar.classList.remove('sidebar-open');
+        sidebar.style.transform = 'translateX(-100%)';
+        sidebar.style.left = '-100%';
+        if (sidebarToggle) {
+            sidebarToggle.classList.remove('active');
         }
     }
 }
