@@ -1025,6 +1025,257 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     scrollbar-color: var(--accent-color) var(--background-color);
 }
 
+/* Welcome Modal Styles */
+.welcome-modal {
+    background-color: var(--background-color);
+    border: 2px solid var(--accent-color);
+    border-radius: 15px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.welcome-modal h2 {
+    color: var(--accent-color);
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.welcome-modal p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.welcome-modal ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.welcome-modal li {
+    margin-bottom: 0.5rem;
+}
+
+.welcome-modal .action-btn {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.welcome-modal .close {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    color: var(--accent-color);
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.welcome-modal .close:hover {
+    color: var(--text-color);
+}
+
+/* Intro.js Custom Styles */
+.introjs-tooltip {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: 2px solid var(--accent-color);
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.introjs-tooltiptext {
+    padding: 1rem;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.introjs-helperNumberLayer {
+    background: var(--accent-color);
+    color: var(--primary-color);
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+}
+
+.introjs-arrow.top {
+    border-bottom-color: var(--accent-color);
+}
+
+.introjs-arrow.right {
+    border-left-color: var(--accent-color);
+}
+
+.introjs-arrow.bottom {
+    border-top-color: var(--accent-color);
+}
+
+.introjs-arrow.left {
+    border-right-color: var(--accent-color);
+}
+
+.introjs-button {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+    border: none;
+    text-shadow: none;
+    font-family: 'Roboto', sans-serif;
+    font-weight: bold;
+    padding: 0.5rem 1rem;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    border-radius: 5px;
+    margin: 2px;
+}
+
+.introjs-button:hover, .introjs-button:focus {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    box-shadow: none;
+}
+
+.introjs-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.introjs-prevbutton {
+    border-right: 1px solid var(--primary-color);
+}
+
+.introjs-skipbutton {
+    color: var(--accent-color);
+    transition: color 0.3s ease;
+    margin-right: 5px;
+}
+
+.introjs-skipbutton:hover {
+    color: var(--text-color);
+    background: none;
+}
+
+.introjs-progress {
+    background-color: var(--secondary-color);
+}
+
+.introjs-progressbar {
+    background-color: var(--accent-color);
+}
+
+.introjs-tooltip-header {
+    padding: 5px 10px;
+}
+
+.introjs-tooltip-header a.introjs-skipbutton {
+    top: 5px;
+    right: 5px;
+    color: var(--accent-color);
+    font-size: 20px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.introjs-tooltip-header a.introjs-skipbutton:hover {
+    color: var(--text-color);
+}
+
+.introjs-tooltip-header a.introjs-skipbutton:hover {
+    color: var(--text-color);
+}
+
+.how-to-use {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.how-to-use h2 {
+    color: var(--accent-color);
+    font-size: 2.5rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.how-to-use .intro {
+    font-size: 1.1rem;
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--text-color);
+}
+
+.how-to-section {
+    background-color: var(--card-background);
+    border-radius: 10px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.how-to-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: var(--accent-color);
+}
+
+.section-icon {
+    font-size: 2.5rem;
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.how-to-section h3 {
+    color: var(--accent-color);
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+}
+
+.how-to-section p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.how-to-section ul {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.how-to-section li {
+    margin-bottom: 0.5rem;
+}
+
+.tip {
+    background-color: rgba(199, 167, 108, 0.1);
+    border-left: 4px solid var(--accent-color);
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 0 5px 5px 0;
+}
+
+.tip strong {
+    color: var(--accent-color);
+}
+
+@media (max-width: 768px) {
+    .how-to-use {
+        padding: 1rem;
+    }
+
+    .how-to-section {
+        padding: 1.5rem;
+    }
+}
+
 @media (min-width: 1200px) {
     .stats-overview, .dashboard-grid {
         display: grid;

@@ -36,6 +36,8 @@ function generateUniqueId() {
     return 'id_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 }
 
+document.getElementById('helpBtn').addEventListener('click', startWalkthrough);
+
 document.addEventListener("DOMContentLoaded", function() {
     loadFromLocalStorage();
     initializeDashboard();
@@ -62,12 +64,27 @@ document.addEventListener("DOMContentLoaded", function() {
     const mainContent = document.querySelector('.main-content');
     const navButtons = document.querySelectorAll('.nav-btn');
 
-    sidebarToggle.addEventListener('click', toggleSidebar);
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', toggleSidebar);
+
+        document.addEventListener('click', function(event) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnToggleButton = event.target === sidebarToggle;
+            
+            if (!isClickInsideSidebar && !isClickOnToggleButton && sidebar.classList.contains('sidebar-open')) {
+                toggleSidebar();
+            }
+        });
+
+        sidebar.addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+    }
 
     navButtons.forEach(button => {
         button.addEventListener('click', () => {
             loadSection(button.dataset.section);
-            if (window.innerWidth <= 768) {
+            if (window.innerWidth <= 768 && sidebar) {
                 toggleSidebar();
             }
         });
@@ -85,18 +102,81 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-document.addEventListener('click', function(event) {
-    const isClickInsideSidebar = sidebar.contains(event.target);
-    const isClickOnToggleButton = event.target === sidebarToggle;
-    
-    if (!isClickInsideSidebar && !isClickOnToggleButton && sidebar.classList.contains('sidebar-open')) {
-        toggleSidebar();
-    }
-});
+function showWelcomeModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content welcome-modal">
+            <h2>Welcome to Skill Quest</h2>
+            <p>Embark on your personal development journey with Skill Quest. Here's how to get started:</p>
+            <ol>
+                <li>Add skills you want to improve</li>
+                <li>Create activities to practice those skills</li>
+                <li>Complete quests to challenge yourself</li>
+                <li>Track your progress and earn achievements</li>
+            </ol>
+            <button id="startTutorial" class="action-btn">Start Tutorial</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
 
-sidebar.addEventListener('click', function(event) {
-    event.stopPropagation();
-});
+    document.getElementById('startTutorial').addEventListener('click', () => {
+        modal.style.display = 'none';
+        modal.remove();
+        startWalkthrough();
+    });
+}
+// Call this function when the app loads for the first time
+if (!localStorage.getItem('walkthroughCompleted')) {
+    showWelcomeModal();
+}
+
+function startWalkthrough() {
+    const steps = [
+        { 
+            element: '.nav-btn[data-section="skills"]', 
+            intro: 'Add and manage your skills here. Each skill represents an area you want to improve.',
+            position: 'right'
+        },
+        { 
+            element: '.nav-btn[data-section="activities"]', 
+            intro: 'Create activities to practice your skills. Completing activities earns you XP and levels up your skills.',
+            position: 'right'
+        },
+        { 
+            element: '.nav-btn[data-section="quests"]', 
+            intro: 'Take on quests to challenge yourself. Quests are collections of activities that provide larger goals and greater rewards.',
+            position: 'right'
+        },
+        { 
+            element: '.nav-btn[data-section="rewards"]', 
+            intro: 'View your achievements and milestones here. Track your overall progress and celebrate your successes!',
+            position: 'right'
+        },
+        { 
+            element: '#userAvatar', 
+            intro: 'This is your character profile. Watch your level increase as you complete activities and quests!',
+            position: 'bottom'
+        }
+    ];
+
+    introJs().setOptions({
+        steps: steps,
+        exitOnOverlayClick: false,
+        exitOnEsc: false,
+        disableInteraction: true,
+        highlightClass: 'introjs-custom-highlight',
+        tooltipClass: 'introjs-custom-tooltip',
+        nextLabel: 'Next →',
+        prevLabel: '← Back',
+        doneLabel: 'Finish',
+        scrollToElement: true,
+        scrollPadding: 50
+    }).oncomplete(() => {
+        localStorage.setItem('walkthroughCompleted', 'true');
+    }).start();
+}
 
 function showSettingsMenu() {
     const settingsMenu = createModal('Settings', `
@@ -154,6 +234,9 @@ function loadSection(sectionName) {
         case 'rewards':
             loadRewardsSection();
             break;
+        case 'howToUse':
+            loadHowToUseSection();
+            break;
         default:
             console.error('Unknown section:', sectionName);
     }
@@ -161,6 +244,84 @@ function loadSection(sectionName) {
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.section === sectionName);
     });
+}
+
+function loadHowToUseSection() {
+    const mainContent = document.getElementById('mainContent');
+    mainContent.innerHTML = `
+        <div class="how-to-use">
+            <h2>How to Use Skill Quest</h2>
+            <p class="intro">Welcome to Skill Quest, your personal development companion. This guide will help you make the most of your journey to self-improvement.</p>
+            
+            <section class="how-to-section">
+                <div class="section-icon"><i class="fas fa-book-open"></i></div>
+                <h3>Skills</h3>
+                <p>Skills are the core of your personal development journey in Skill Quest.</p>
+                <ul>
+                    <li>Add skills you want to improve or learn</li>
+                    <li>Each skill can be leveled up by completing related activities</li>
+                    <li>Track your progress and watch your skills grow over time</li>
+                </ul>
+                <div class="tip">
+                    <strong>Tip:</strong> Start with 3-5 skills you're most eager to develop. You can always add more later!
+                </div>
+            </section>
+
+            <section class="how-to-section">
+                <div class="section-icon"><i class="fas fa-tasks"></i></div>
+                <h3>Activities</h3>
+                <p>Activities are the building blocks of your skill development.</p>
+                <ul>
+                    <li>Create specific, actionable activities for each skill</li>
+                    <li>Complete activities to gain XP and level up your skills</li>
+                    <li>Set realistic XP values for each activity based on difficulty and time investment</li>
+                </ul>
+                <div class="tip">
+                    <strong>Tip:</strong> Break down larger goals into smaller, manageable activities. This makes progress more achievable and rewarding!
+                </div>
+            </section>
+
+            <section class="how-to-section">
+                <div class="section-icon"><i class="fas fa-map-marked-alt"></i></div>
+                <h3>Quests</h3>
+                <p>Quests are collections of activities that provide larger challenges and greater rewards.</p>
+                <ul>
+                    <li>Create quests to set bigger goals for yourself</li>
+                    <li>Assign relevant activities to each quest</li>
+                    <li>Complete all activities in a quest to earn bonus XP and achievements</li>
+                </ul>
+                <div class="tip">
+                    <strong>Tip:</strong> Use quests for long-term goals or projects. They're great for maintaining motivation over extended periods!
+                </div>
+            </section>
+
+            <section class="how-to-section">
+                <div class="section-icon"><i class="fas fa-trophy"></i></div>
+                <h3>Milestones and Achievements</h3>
+                <p>Track your progress and celebrate your successes!</p>
+                <ul>
+                    <li>Earn achievements by reaching specific milestones in your journey</li>
+                    <li>Unlock new titles and badges as you progress</li>
+                    <li>Use the milestones page to set and track personal goals</li>
+                </ul>
+                <div class="tip">
+                    <strong>Tip:</strong> Don't forget to celebrate your achievements, no matter how small. Every step forward is progress!
+                </div>
+            </section>
+
+            <section class="how-to-section">
+                <div class="section-icon"><i class="fas fa-chart-line"></i></div>
+                <h3>Best Practices</h3>
+                <p>Make the most of Skill Quest with these tips:</p>
+                <ul>
+                    <li>Update your progress regularly to stay motivated</li>
+                    <li>Balance your focus across different skills</li>
+                    <li>Revisit and adjust your goals periodically</li>
+                    <li>Use the app daily to build a consistent habit of self-improvement</li>
+                </ul>
+            </section>
+        </div>
+    `;
 }
 
 function loadOverviewSection() {
@@ -1445,7 +1606,7 @@ function purgeData(dataType) {
                 xp: 0,
                 level: 1,
                 achievements: [],
-                avatar: 'public/default-avatar.webp'
+                avatar: 'default-avatar.webp'
             };
             break;
         case 'skills':
