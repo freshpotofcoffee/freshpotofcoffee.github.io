@@ -1445,7 +1445,7 @@ function purgeData(dataType) {
                 xp: 0,
                 level: 1,
                 achievements: [],
-                avatar: 'default-avatar.webp'
+                avatar: '../public/default-avatar.webp'
             };
             break;
         case 'skills':
