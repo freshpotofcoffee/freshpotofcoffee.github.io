@@ -91,13 +91,14 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     function toggleSidebar() {
-        sidebar.classList.toggle('sidebar-open');
+        const sidebar = document.querySelector('.sidebar');
         if (sidebar.classList.contains('sidebar-open')) {
-            sidebar.style.transform = 'translateX(0)';
-            document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
-        } else {
+            sidebar.classList.remove('sidebar-open');
             sidebar.style.transform = 'translateX(-100%)';
             document.body.style.overflow = ''; // Restore scrolling when menu is closed
+        } else {
+            openSidebar();
+            document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
         }
     }
 });
@@ -134,6 +135,10 @@ if (!localStorage.getItem('walkthroughCompleted')) {
 
 function startWalkthrough() {
     const isMobile = window.innerWidth <= 768;
+
+        // Force open the sidebar before starting the tutorial
+        openSidebar();
+        
     const steps = [
         {
             element: '#userAvatar',
@@ -210,11 +215,13 @@ function startWalkthrough() {
         });
     }
 
-    introJs().setOptions({
+    let currentStep = 0;
+
+    const tour = introJs().setOptions({
         steps: steps,
         exitOnOverlayClick: false,
         exitOnEsc: false,
-        disableInteraction: true,
+        disableInteraction: false,  // Changed to false to allow interaction
         highlightClass: 'introjs-custom-highlight',
         tooltipClass: 'introjs-custom-tooltip',
         nextLabel: isMobile ? 'Next' : 'Next →',
@@ -223,10 +230,63 @@ function startWalkthrough() {
         skipLabel: '×',
         scrollToElement: true,
         scrollPadding: isMobile ? 20 : 50,
-        tooltipPosition: isMobile ? 'bottom' : 'auto'
-    }).oncomplete(() => {
+        tooltipPosition: isMobile ? 'bottom' : 'auto',
+        beforeChange: function(targetElement) {
+            currentStep = this._currentStep;
+            
+            // Ensure sidebar stays open throughout the tutorial
+            openSidebar();
+            
+            // Scroll to the element
+            targetElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        },
+        onafterchange: function(targetElement) {
+            // Check tooltip visibility
+            setTimeout(() => {
+                const tooltip = document.querySelector('.introjs-tooltip');
+                if (tooltip) {
+                    const rect = tooltip.getBoundingClientRect();
+                    if (rect.top < 0 || rect.bottom > window.innerHeight) {
+                        tooltip.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }
+                }
+            }, 100);
+        }
+    });
+
+    tour.oncomplete(() => {
         localStorage.setItem('walkthroughCompleted', 'true');
+    }).onexit(() => {
+        // Close the sidebar when the tutorial ends or is exited
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.remove('sidebar-open');
+            sidebar.style.transform = 'translateX(-100%)';
+        }
     }).start();
+}
+
+function openSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    if (sidebar) {
+        sidebar.classList.add('sidebar-open');
+        sidebar.style.transform = 'translateX(0)';
+        sidebar.style.left = '0';  // Add this line
+        if (sidebarToggle) {
+            sidebarToggle.classList.add('active');
+        }
+    }
+}
+
+function isElementVisible(el) {
+    return !!( el.offsetWidth || el.offsetHeight || el.getClientRects().length );
 }
 
 function showSettingsMenu() {
