@@ -3,18 +3,35 @@ let skills = {};
 let activities = [];
 let quests = [];
 let rewards = [];
-let user = {
-    name: "Adventurer",
-    xp: 0,
-    level: 1,
-    achievements: [],
-    avatar: 'default-avatar.webp',
-    lastActivityDate: null,
-    currentStreak: 0,
-    longestStreak: 0
-};
+let user = createDefaultUser();
 let scrollbars = {};
 
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js';
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
+import { getFirestore, doc, setDoc, getDoc, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js';
+
+const firebaseConfig = {
+    apiKey: "AIzaSyC4Bvfckp0t73HbLMmVF9exusaagGgSLOw",
+    authDomain: "habit-adventure-3c33a.firebaseapp.com",
+    projectId: "habit-adventure-3c33a",
+    storageBucket: "habit-adventure-3c33a.appspot.com",
+    messagingSenderId: "867216530393",
+    appId: "1:867216530393:web:091c437f5b19796562d7c8",
+    measurementId: "G-EJXWRH8SPP"
+};
+  
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code == 'failed-precondition') {
+        console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+    } else if (err.code == 'unimplemented') {
+        console.log('The current browser does not support all of the features required to enable persistence');
+    }
+});
+  
 
 const XP_PER_LEVEL = 100;
 const MAX_SKILL_LEVEL = 50;
@@ -43,6 +60,17 @@ document.addEventListener("DOMContentLoaded", function() {
     initializeDashboard();
     updateUserInfoDisplay();
 
+    auth.onAuthStateChanged((currentUser) => {
+        if (currentUser) {
+            console.log("User is signed in");
+            loadUserData(currentUser.uid);
+        } else {
+            console.log("No user signed in");
+            loadFromLocalStorage();
+            updateMiniProfile();
+        }
+    });
+
     const settingsBtn = document.getElementById('settingsBtn');
     if (settingsBtn) {
         settingsBtn.addEventListener('click', showSettingsMenu);
@@ -53,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const homeBtn = document.getElementById('homeBtn');
     if (homeBtn) {
         homeBtn.addEventListener('click', () => {
-            window.location.href = '../index.html';
+            window.location.href = 'index.html';
         });
     } else {
         console.error('Home button not found');
@@ -98,6 +126,11 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     });
+    const signInBtn = document.getElementById('signInBtn');
+    const signOutBtn = document.getElementById('signOutBtn');
+
+    if (signInBtn) signInBtn.addEventListener('click', signIn);
+    if (signOutBtn) signOutBtn.addEventListener('click', userSignOut);
 
     if (!localStorage.getItem('tutorialCompleted')) {
         showWelcomeModal();
@@ -111,22 +144,188 @@ function checkAndStartTutorial() {
     }
 }
 
-function showWelcomeModal() {
-    const modal = createModal('Welcome to Habit Adventure', `
-        <p style="margin-bottom: 1rem; line-height: 1.6;">Embark on your personal development journey with Habit Adventure. Here's how to get started:</p>
-        <ol style="margin-left: 1.5rem; margin-bottom: 1.5rem;">
-            <li style="margin-bottom: 0.5rem;">Add skills you want to improve</li>
-            <li style="margin-bottom: 0.5rem;">Create activities to practice those skills</li>
-            <li style="margin-bottom: 0.5rem;">Complete quests to challenge yourself</li>
-            <li style="margin-bottom: 0.5rem;">Track your progress and earn achievements</li>
-        </ol>
-        <button id="startTutorial" class="action-btn">Start Tutorial</button>
-    `);
+function createDefaultUser() {
+    return {
+        name: "Adventurer",
+        xp: 0,
+        level: 1,
+        achievements: [],
+        avatar: '../images/default-avatar.webp',
+        lastActivityDate: null,
+        currentStreak: 0,
+        longestStreak: 0
+    };
+}
 
-    document.getElementById('startTutorial').addEventListener('click', function() {
-        closeModal(modal);
+function signIn() {
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider)
+        .then((result) => {
+            console.log("User signed in:", result.user);
+            loadUserData(result.user.uid);
+        }).catch((error) => {
+            console.error("Error during sign in:", error);
+        });
+}
+
+// Sign Out function
+function userSignOut() {
+    const localData = {
+        user: user,
+        skills: skills,
+        activities: activities,
+        quests: quests,
+        rewards: rewards
+    };
+    
+    signOut(auth).then(() => {
+        console.log("User signed out");
+        // Load the local data that was saved before signing in
+        loadFromLocalStorage();
+        
+        updateUserInfoDisplay();
+        updateMiniProfile();
+        loadSection('overview');
+    }).catch((error) => {
+        console.error("Error during sign out:", error);
+    });
+}
+
+// Load User Data function
+async function loadUserData(userId) {
+    if (!userId) {
+        console.error("No user ID provided");
+        return;
+    }
+    try {
+        const docSnap = await getDoc(doc(db, 'users', userId));
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            user = data.user || createDefaultUser();
+            skills = data.skills || {};
+            activities = data.activities || [];
+            quests = data.quests || [];
+            rewards = data.rewards || [];
+        } else {
+            console.log("No user data found in Firebase, creating new profile");
+            user = createDefaultUser();
+            skills = {};
+            activities = [];
+            quests = [];
+            rewards = [];
+            await saveUserData(userId);
+        }
+        
+        updateUserInfoDisplay();
+        updateMiniProfile();
+        loadSection('overview');
+    } catch (error) {
+        console.error("Error loading user data:", error);
+        if (error.code === 'unavailable') {
+            console.log("The app is offline. Using local data if available.");
+            loadFromLocalStorage();
+        }
+    }
+}
+
+function saveData() {
+    if (auth.currentUser) {
+        saveUserData(auth.currentUser.uid);
+    }
+    saveToLocalStorage();
+}
+
+// Save User Data function
+async function saveUserData(userId) {
+    if (!userId) {
+        console.error("No user ID provided");
+        return Promise.reject("No user ID provided");
+    }
+    try {
+        await setDoc(doc(db, 'users', userId), {
+            name: user.name,
+            xp: user.xp,
+            level: user.level,
+            achievements: user.achievements,
+            avatar: user.avatar,
+            lastActivityDate: user.lastActivityDate,
+            currentStreak: user.currentStreak,
+            longestStreak: user.longestStreak,
+            skills: skills,
+            activities: activities,
+            quests: quests,
+            rewards: rewards
+        });
+        console.log("User data saved successfully");
+        updateMiniProfile();
+        return Promise.resolve();
+    } catch (error) {
+        console.error("Error saving user data:", error);
+        return Promise.reject(error);
+    }
+}
+
+  function subscribeToUserData(userId) {
+    const userRef = doc(db, 'users', userId);
+    return onSnapshot(userRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        user = {
+          name: data.name,
+          xp: data.xp,
+          level: data.level,
+          achievements: data.achievements,
+          avatar: data.avatar,
+          lastActivityDate: data.lastActivityDate,
+          currentStreak: data.currentStreak,
+          longestStreak: data.longestStreak
+        };
+        skills = data.skills || {};
+        activities = data.activities || [];
+        quests = data.quests || [];
+        rewards = data.rewards || [];
+        updateUserInfoDisplay();
+        loadSection('overview');
+      }
+    });
+  }
+
+function showWelcomeModal() {
+    const modalContent = `
+        <div class="welcome-modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Welcome to Habit Adventure</h2>
+                <p>Embark on your personal development journey with Skill Quest. Here's how to get started:</p>
+                <ol>
+                    <li>Add skills you want to improve</li>
+                    <li>Create activities to practice those skills</li>
+                    <li>Complete quests to challenge yourself</li>
+                    <li>Track your progress and earn achievements</li>
+                </ol>
+                <button id="startTutorial" class="action-btn">Start Tutorial</button>
+            </div>
+        </div>
+    `;
+
+    const modalElement = document.createElement('div');
+    modalElement.innerHTML = modalContent;
+    document.body.appendChild(modalElement);
+
+    const modal = modalElement.querySelector('.welcome-modal');
+    const closeBtn = modal.querySelector('.close');
+    const startTutorialBtn = modal.querySelector('#startTutorial');
+
+    closeBtn.addEventListener('click', () => {
+        document.body.removeChild(modalElement);
+    });
+
+    startTutorialBtn.addEventListener('click', () => {
+        document.body.removeChild(modalElement);
         startWalkthrough();
     });
+
+    modal.style.display = 'flex';
 }
 
 function startWalkthrough() {
@@ -242,7 +441,7 @@ function startDesktopTutorial() {
         },
         {
             element: '#settingsBtn',
-            intro: 'Finally, go here to adjust your settings. You can change your name, picture, and purge your data right here.',
+            intro: 'Finally, go here to log in/out, edit your profile, or reset your data.',
             position: 'left'
         }
     ];
@@ -303,24 +502,135 @@ function isElementVisible(el) {
 }
 
 function showSettingsMenu() {
-    const settingsMenu = createModal('Settings', `
+    const currentUser = auth.currentUser;
+    let content = '';
+
+    if (currentUser) {
+        // User is signed in
+        content += `
+            <div class="user-profile-summary">
+                <img src="${user.avatar}" alt="Profile Picture" class="profile-pic">
+                <p class="user-name">${user.name}</p>
+                <p class="user-email">${currentUser.email}</p>
+            </div>
+        `;
+    } else {
+        // User is signed out
+        content += `
+            <p>You are not signed in.</p><br />
+        `;
+    }
+
+    content += `
         <ul class="settings-menu">
-            <li><button id="editProfileBtn" class="settings-option">Edit Profile</button></li>
+            ${currentUser ? 
+                `<li><button id="editProfileBtn" class="settings-option">Edit Profile</button></li>
+                 <li><button id="signOutBtn" class="settings-option">Sign Out</button></li>` :
+                `<li><button id="signInBtn" class="settings-option">Sign In</button></li>`
+            }
+            <li><button id="exportDataBtn" class="settings-option">Export Data</button></li>
+            <li><button id="importDataBtn" class="settings-option">Import Data</button></li>
             <li><button id="debugOptionsBtn" class="settings-option">Debug Options</button></li>
         </ul>
-    `);
+    `;
 
-    document.getElementById('editProfileBtn').addEventListener('click', () => {
+    const settingsMenu = createModal('Settings', content);
+
+    // Add event listeners
+    if (currentUser) {
+        document.getElementById('editProfileBtn').addEventListener('click', () => {
+            closeModal(settingsMenu);
+            showEditProfileForm();
+        });
+        document.getElementById('signOutBtn').addEventListener('click', () => {
+            closeModal(settingsMenu);
+            userSignOut();
+        });
+    } else {
+        document.getElementById('signInBtn').addEventListener('click', () => {
+            closeModal(settingsMenu);
+            signIn();
+        });
+    }
+
+    document.getElementById('exportDataBtn').addEventListener('click', () => {
         closeModal(settingsMenu);
-        showEditProfileForm();
+        exportData();
+    });
+
+    document.getElementById('importDataBtn').addEventListener('click', () => {
+        closeModal(settingsMenu);
+        importData();
     });
 
     document.getElementById('debugOptionsBtn').addEventListener('click', () => {
         closeModal(settingsMenu);
         showDebugOptions();
     });
+}
 
-    // Add other settings options functionality here
+function exportData() {
+    const data = {
+        user: user,
+        skills: skills,
+        activities: activities,
+        quests: quests,
+        rewards: rewards
+    };
+
+    const dataStr = JSON.stringify(data);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = 'habit_adventure_data.json';
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+}
+
+function importData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.readAsText(file, 'UTF-8');
+
+        reader.onload = readerEvent => {
+            const content = readerEvent.target.result;
+            try {
+                const parsedData = JSON.parse(content);
+                
+                // Replace existing data with imported data
+                user = parsedData.user;
+                skills = parsedData.skills;
+                activities = parsedData.activities;
+                quests = parsedData.quests;
+                rewards = parsedData.rewards;
+
+                // Save the imported data
+                if (auth.currentUser) {
+                    saveUserData(auth.currentUser.uid);
+                } else {
+                    saveToLocalStorage();
+                }
+
+                // Update the UI
+                updateUserInfoDisplay();
+                loadSection('overview');
+
+                alert('Data imported successfully!');
+            } catch (error) {
+                console.error('Error parsing imported data:', error);
+                alert('Error importing data. Please make sure the file is a valid JSON export from Habit Adventure.');
+            }
+        }
+    }
+
+    input.click();
 }
 
 function initializeDashboard() {
@@ -341,6 +651,11 @@ function loadSection(sectionName) {
         return;
     }
     mainContent.innerHTML = '';
+
+    // Only load from local storage if user is not signed in
+    if (!auth.currentUser) {
+        loadFromLocalStorage();
+    }
 
     switch(sectionName) {
         case 'overview':
@@ -368,6 +683,22 @@ function loadSection(sectionName) {
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.section === sectionName);
     });
+}
+
+function updateMiniProfile() {
+    const miniProfileElement = document.getElementById('userProfileMini');
+    const currentUser = auth.currentUser;
+
+    if (currentUser && user) {
+        miniProfileElement.innerHTML = `
+            <img src="${user.avatar}" alt="Profile Picture" class="mini-profile-pic">
+            <span class="mini-profile-name">${user.name}</span>
+        `;
+    } else {
+        miniProfileElement.innerHTML = `
+            <span class="mini-profile-signin">Not signed in</span>
+        `;
+    }
 }
 
 function loadHowToUseSection() {
@@ -451,6 +782,11 @@ function loadHowToUseSection() {
 function loadOverviewSection() {
     const mainContent = document.getElementById('mainContent');
     if (!mainContent) return;
+    
+    if (!user) {
+        user = createDefaultUser();
+    }
+
     const nextLevelXP = xpForNextLevel(user.level);
     const currentLevelXP = nextLevelXP - XP_PER_LEVEL;
     const xpProgress = ((user.xp - currentLevelXP) / XP_PER_LEVEL) * 100;
@@ -491,7 +827,7 @@ mainContent.innerHTML = `
         <div class="hero-content">
             <div class="user-info">
                 <div class="avatar-frame">
-                    <img src="${user.avatar || 'default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
+                    <img src="${user.avatar || '../images/default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
                 </div>
                 <div class="user-details">
                     <h2 id="userName">${user.name}</h2>
@@ -638,10 +974,6 @@ function openModal(modal) {
     document.body.classList.add('modal-open');
 }
 
-function closeModal(modal) {
-    modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
-}
 
 function loadSkillsSection() {
     const mainContent = document.getElementById('mainContent');
@@ -737,7 +1069,6 @@ function showAddSkillForm() {
             return;
         }
 
-        // Fix: Check if the skill object exists before accessing its name property
         if (Object.values(skills).some(skill => skill && skill.name && skill.name.toLowerCase() === skillName.toLowerCase())) {
             alert('Skill already exists!');
             return;
@@ -745,9 +1076,11 @@ function showAddSkillForm() {
 
         const skillId = generateUniqueId();
         skills[skillId] = { id: skillId, name: skillName, xp: 0, level: 1, icon: icon };
-        saveToLocalStorage();
+        
+        saveData();
+
         closeModal(modal);
-        loadSection('skills');
+        updateSkillsList();
         addXP(10); // Award XP for creating a new skill
     });
 }
@@ -791,9 +1124,9 @@ function showEditSkillForm(skillId) {
 
         skills[skillId].name = skillName;
         skills[skillId].icon = icon;
-        saveToLocalStorage();
         closeModal(modal);
         loadSection('skills');
+        saveData();
     });
 }
 
@@ -801,8 +1134,8 @@ function deleteSkill(skillId) {
     if (confirm('Are you sure you want to delete this skill? This action cannot be undone.')) {
         delete skills[skillId];
         activities = activities.filter(a => a.skillId !== skillId);
-        saveToLocalStorage();
         loadSection('skills');
+        saveData();
     }
 }
 
@@ -947,9 +1280,11 @@ function showAddActivityForm() {
             lastUpdated: Date.now()
         };
         activities.push(newActivity);
-        saveToLocalStorage();
+        
+        saveData();
+
         closeModal(modal);
-        loadSection('activities');
+        updateActivitiesList();
         addXP(5); // Award XP for creating a new activity
     });
 }
@@ -1012,7 +1347,7 @@ function showEditActivityForm(activityId) {
                 skillId: selectedSkill, 
                 repeatable: isRepeatable
             };
-            saveToLocalStorage();
+            saveData();
             closeModal(modal);
             loadSection('activities');
         }
@@ -1041,8 +1376,8 @@ function deleteActivity(activityId) {
             }
         });
 
-        saveToLocalStorage();
         updateActivitiesList();
+        saveData();
         updateQuestsList(); // Update quests in case any were affected
         console.log('Activity deleted successfully:', activityId);
         alert('Activity deleted successfully.');
@@ -1086,9 +1421,8 @@ function completeActivity(activityId) {
 
     // Check if any quests are completed
     checkQuestsCompletion();
-
+    saveData();
     updateStreak();
-    saveToLocalStorage();
     updateActivitiesList();
     updateUserInfoDisplay();
 }
@@ -1118,6 +1452,7 @@ function updateStreak() {
         addXP(20);
         alert(`Great job! You've maintained a ${user.currentStreak}-day streak! Bonus 20 XP awarded!`);
     }
+    saveData();
 }
 
 function checkQuestsCompletion() {
@@ -1230,8 +1565,7 @@ function claimQuestReward(questId) {
     } else {
         alert(`Congratulations! You've completed the quest "${quest.name}"`);
     }
-
-    saveToLocalStorage();
+    saveData();
     updateQuestsList();
     updateUserInfoDisplay();
 }
@@ -1283,9 +1617,11 @@ function showAddQuestForm() {
         };
         
         quests.push(newQuest);
-        saveToLocalStorage();
+        
+        saveData();
+
         closeModal(modal);
-        loadSection('quests');
+        updateQuestsList();
         addXP(15); // Award XP for creating a new quest
     });
 }
@@ -1341,7 +1677,7 @@ function showEditQuestForm(questId) {
                 activities: selectedActivities,
                 reward: questReward
             };
-            saveToLocalStorage();
+            saveData();
             closeModal(modal);
             loadSection('quests');
         }
@@ -1351,7 +1687,7 @@ function showEditQuestForm(questId) {
 function deleteQuest(questId) {
     if (confirm('Are you sure you want to delete this quest? This action cannot be undone.')) {
         quests = quests.filter(q => q.id !== questId);
-        saveToLocalStorage();
+        saveData();
         loadSection('quests');
     }
 }
@@ -1373,8 +1709,7 @@ function completeQuest(questId) {
     } else {
         alert(`Congratulations! You've completed the quest "${quest.name}"`);
     }
-
-    saveToLocalStorage();
+    saveData();
     updateQuestsList();
     updateUserInfoDisplay();
 }
@@ -1419,7 +1754,7 @@ function updateRewards() {
         });
     });
 
-    saveToLocalStorage();
+    saveData();
 }
 
 function updateRewardsList() {
@@ -1430,6 +1765,11 @@ function updateRewardsList() {
 function updateAchievementsList() {
     const achievementsList = document.getElementById('achievementsList');
     if (!achievementsList) return;
+
+    if (!user || !user.achievements) {
+        user = user || createDefaultUser();
+        user.achievements = user.achievements || [];
+    }
 
     achievementsList.innerHTML = `
         <h3>Achievements</h3>
@@ -1526,7 +1866,7 @@ function showAddMilestoneForm() {
         };
 
         rewards.push(newMilestone);
-        saveToLocalStorage();
+        saveData();
         closeModal(modal);
         updateRewardsList();
     });
@@ -1541,7 +1881,7 @@ function claimReward(rewardId) {
         reward.claimed = true;
         alert(`Congratulations! You've claimed the reward: ${reward.name}`);
         addXP(30);
-        saveToLocalStorage();
+        saveData();
         updateRewardsList();
         updateUserInfoDisplay();
     } else {
@@ -1550,6 +1890,9 @@ function claimReward(rewardId) {
 }
 
 function addXP(amount) {
+    if (!user) {
+        user = createDefaultUser();
+    }
     const oldLevel = user.level;
     user.xp += amount;
     user.level = calculateLevel(user.xp);
@@ -1557,10 +1900,9 @@ function addXP(amount) {
     if (user.level > oldLevel) {
         alert(`Congratulations! You've reached level ${user.level}!`);
     }
-    
     checkAchievements();
+    saveData();
     updateUserInfoDisplay();
-    saveToLocalStorage();
 }
 
 function checkLevelUp() {
@@ -1586,26 +1928,35 @@ function updateUserInfoDisplay() {
     const xpFill = document.getElementById('xpFill');
     const xpInfo = document.getElementById('xpInfo');
 
-    if (userNameElement) userNameElement.textContent = user.name;
-    if (userLevelElement) userLevelElement.textContent = 'Level ' + user.level;
-    
-    if (avatarImg) {
-        avatarImg.src = user.avatar || 'default-avatar.webp';
-        avatarImg.onerror = function() {
-            this.src = 'default-avatar.webp';
-        };
-    }
-    
-    const nextLevelXP = xpForNextLevel(user.level);
-    const currentLevelXP = nextLevelXP - XP_PER_LEVEL;
-    const xpProgress = ((user.xp - currentLevelXP) / XP_PER_LEVEL) * 100;
-    
-    if (xpFill) {
-        xpFill.style.width = xpProgress + '%';
-    }
-    
-    if (xpInfo) {
-        xpInfo.textContent = `${user.xp - currentLevelXP} / ${XP_PER_LEVEL} XP to next level`;
+    if (user) {
+        if (userNameElement) userNameElement.textContent = user.name || "Adventurer";
+        if (userLevelElement) userLevelElement.textContent = 'Level ' + (user.level || 1);
+        
+        if (avatarImg) {
+            avatarImg.src = user.avatar || '../images/default-avatar.webp';
+            avatarImg.onerror = function() {
+                this.src = '../images/default-avatar.webp';
+            };
+        }
+        
+        const nextLevelXP = xpForNextLevel(user.level || 1);
+        const currentLevelXP = nextLevelXP - XP_PER_LEVEL;
+        const xpProgress = ((user.xp || 0) - currentLevelXP) / XP_PER_LEVEL * 100;
+        
+        if (xpFill) {
+            xpFill.style.width = xpProgress + '%';
+        }
+        
+        if (xpInfo) {
+            xpInfo.textContent = `${(user.xp || 0) - currentLevelXP} / ${XP_PER_LEVEL} XP to next level`;
+        }
+    } else {
+        // Handle case when user is null
+        if (userNameElement) userNameElement.textContent = "Adventurer";
+        if (userLevelElement) userLevelElement.textContent = 'Level 1';
+        if (avatarImg) avatarImg.src = '../images/default-avatar.webp';
+        if (xpFill) xpFill.style.width = '0%';
+        if (xpInfo) xpInfo.textContent = '0 / 100 XP to next level';
     }
 }
 
@@ -1643,11 +1994,12 @@ function closeModal(modal) {
 
 function saveToLocalStorage() {
     try {
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('skills', JSON.stringify(skills));
-        localStorage.setItem('activities', JSON.stringify(activities));
-        localStorage.setItem('quests', JSON.stringify(quests));
-        localStorage.setItem('rewards', JSON.stringify(rewards));
+        localStorage.setItem('localUser', JSON.stringify(user));
+        localStorage.setItem('localSkills', JSON.stringify(skills));
+        localStorage.setItem('localActivities', JSON.stringify(activities));
+        localStorage.setItem('localQuests', JSON.stringify(quests));
+        localStorage.setItem('localRewards', JSON.stringify(rewards));
+        console.log('Data saved to local storage');
     } catch (error) {
         console.error('Error saving to local storage:', error);
     }
@@ -1655,19 +2007,22 @@ function saveToLocalStorage() {
 
 function loadFromLocalStorage() {
     try {
-        const savedUser = JSON.parse(localStorage.getItem('user'));
-        if (savedUser) {
-            user = {...user, ...savedUser};
-        }
-        skills = JSON.parse(localStorage.getItem('skills')) || {};
-        activities = JSON.parse(localStorage.getItem('activities')) || [];
-        quests = JSON.parse(localStorage.getItem('quests')) || [];
-        rewards = JSON.parse(localStorage.getItem('rewards')) || [];
-
-        updateUserInfoDisplay();
+        const savedUser = JSON.parse(localStorage.getItem('localUser'));
+        user = savedUser ? {...createDefaultUser(), ...savedUser} : createDefaultUser();
+        skills = JSON.parse(localStorage.getItem('localSkills')) || {};
+        activities = JSON.parse(localStorage.getItem('localActivities')) || [];
+        quests = JSON.parse(localStorage.getItem('localQuests')) || [];
+        rewards = JSON.parse(localStorage.getItem('localRewards')) || [];
+        console.log('Data loaded from local storage');
     } catch (error) {
         console.error('Error loading from local storage:', error);
+        user = createDefaultUser();
+        skills = {};
+        activities = [];
+        quests = [];
+        rewards = [];
     }
+    updateUserInfoDisplay();
 }
 
 function showEditProfileForm() {
@@ -1679,7 +2034,7 @@ function showEditProfileForm() {
             </div>
             <div class="form-group">
                 <label for="editUserAvatar">Avatar URL:</label>
-                <input type="text" id="editUserAvatar" value="${user.avatar || ''}">
+                <input type="text" id="editUserAvatar" value="${user.avatar}">
             </div>
             <button type="submit" class="action-btn">Update Profile</button>
         </form>
@@ -1688,10 +2043,14 @@ function showEditProfileForm() {
     document.getElementById('editProfileForm').addEventListener('submit', function(e) {
         e.preventDefault();
         user.name = document.getElementById('editUserName').value.trim();
-        user.avatar = document.getElementById('editUserAvatar').value.trim();
-        saveToLocalStorage();
-        closeModal(modal);
+        const newAvatar = document.getElementById('editUserAvatar').value.trim();
+        if (newAvatar) {
+            user.avatar = newAvatar;
+        }
+        saveData();
         updateUserInfoDisplay();
+        updateMiniProfile();
+        closeModal(modal);
     });
 }
 
@@ -1714,10 +2073,12 @@ function showDebugOptions() {
     document.getElementById('purgeRewardsBtn').addEventListener('click', () => purgeData('rewards'));
 }
 
-function purgeData(dataType) {
+async function purgeData(dataType) {
     if (!confirm(`Are you sure you want to purge ${dataType}? This action cannot be undone.`)) {
         return;
     }
+
+    const currentUser = auth.currentUser;
 
     switch(dataType) {
         case 'all':
@@ -1730,7 +2091,10 @@ function purgeData(dataType) {
                 xp: 0,
                 level: 1,
                 achievements: [],
-                avatar: 'default-avatar.webp'
+                avatar: '../images/default-avatar.webp',
+                lastActivityDate: null,
+                currentStreak: 0,
+                longestStreak: 0
             };
             break;
         case 'skills':
@@ -1747,7 +2111,19 @@ function purgeData(dataType) {
             break;
     }
 
+    // Update local storage
     saveToLocalStorage();
+
+    // Update Firebase if user is logged in
+    if (currentUser) {
+        try {
+            await saveData();
+            console.log(`${dataType} data purged and synced with Firebase`);
+        } catch (error) {
+            console.error("Error syncing purged data with Firebase:", error);
+        }
+    }
+
     alert(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} have been purged.`);
     
     // Refresh the current section
@@ -1757,5 +2133,6 @@ function purgeData(dataType) {
     // Update user info if 'all' was purged
     if (dataType === 'all') {
         updateUserInfoDisplay();
+        updateMiniProfile();
     }
 }

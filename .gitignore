@@ -1,0 +1,14 @@
+# Ignore the entire app directory
+/app
+
+# Ignore node_modules everywhere
+node_modules
+
+# Ignore any .env files
+.env
+
+# Ignore any log files
+*.log
+
+# Ignore .DS_Store files (for Mac users)
+.DS_Store

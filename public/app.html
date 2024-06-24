@@ -8,15 +8,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/5.1.0/introjs.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/5.1.0/intro.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <button id="sidebarToggle" class="sidebar-toggle">☰</button>
     <div class="app-container">
         <aside class="sidebar">
             <div class="header">
-                <img src="habit-adventure-logo.png" alt="Habit Adventure Logo" class="logo">
+                <img src="images/habit-adventure-logo.png" alt="Habit Adventure Logo" class="logo">
             </div>
+            <div id="userProfileMini" class="user-profile-mini"></div>
             <nav class="main-nav">
                 <button class="nav-btn active" data-section="overview"><i class="fas fa-home"></i> Character Sheet</button>
                 <button class="nav-btn" data-section="skills"><i class="fas fa-book-open"></i> Skills</button>
@@ -31,7 +32,7 @@
                 <button id="settingsBtn" class="icon-btn" title="Settings"><i class="fas fa-cog"></i></button>
                 <div class="version-info">
                     <span class="version-label">Version</span>
-                    <span class="version-number">0.4.7.6</span>
+                    <span class="version-number">0.5</span>
                 </div>
             </div>
         </aside>
@@ -50,6 +51,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
