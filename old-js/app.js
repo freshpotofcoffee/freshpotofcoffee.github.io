@@ -34,17 +34,66 @@ const firebaseConfig = {
         console.log('The current browser does not support all of the features required to enable persistence');
     }
 });
-  
 
 const XP_PER_LEVEL = 100;
 const MAX_SKILL_LEVEL = 50;
 const ACHIEVEMENTS = [
+    // Existing achievements
     { id: 'first_skill', name: 'Skill Starter', description: 'Create your first skill', check: () => Object.keys(skills).length >= 1 },
     { id: 'five_skills', name: 'Skill Collector', description: 'Create five skills', check: () => Object.keys(skills).length >= 5 },
+    { id: 'ten_skills', name: 'Skill Master', description: 'Create ten skills', check: () => Object.keys(skills).length >= 10 },
     { id: 'first_activity', name: 'Go-Getter', description: 'Complete your first activity', check: () => activities.some(a => a.completed) },
-    { id: 'level_5', name: 'Apprentice', description: 'Reach level 5', check: () => user.level >= 5 },
+    { id: 'ten_activities', name: 'Busy Bee', description: 'Complete 10 activities', check: () => activities.filter(a => a.completed).length >= 10 },
+    { id: 'fifty_activities', name: 'Productivity King', description: 'Complete 50 activities', check: () => activities.filter(a => a.completed).length >= 50 },
     { id: 'first_quest', name: 'Questor', description: 'Complete your first quest', check: () => quests.some(q => q.completed) },
+    { id: 'five_quests', name: 'Quest Conqueror', description: 'Complete 5 quests', check: () => quests.filter(q => q.completed).length >= 5 },
+    { id: 'skill_level_10', name: 'Skilled Practitioner', description: 'Reach level 10 in any skill', check: () => Object.values(skills).some(s => s.level >= 10) },
+    { id: 'skill_level_20', name: 'Expert', description: 'Reach level 20 in any skill', check: () => Object.values(skills).some(s => s.level >= 20) },
+    { id: 'skill_level_max', name: 'Grand Master', description: 'Reach max level in any skill', check: () => Object.values(skills).some(s => s.level >= MAX_SKILL_LEVEL) },
+    { id: 'streak_7', name: 'Week Warrior', description: 'Maintain a 7-day streak', check: () => user.currentStreak >= 7 },
+    { id: 'streak_30', name: 'Monthly Motivator', description: 'Maintain a 30-day streak', check: () => user.currentStreak >= 30 },
+    { id: 'level_5', name: 'Apprentice', description: 'Reach level 5', check: () => user.level >= 5 },
+    { id: 'level_10', name: 'Rising Star', description: 'Reach level 10', check: () => user.level >= 10 },
+    { id: 'level_20', name: 'Habit Hero', description: 'Reach level 20', check: () => user.level >= 20 },
+    { id: 'level_20', name: 'Habit Master', description: 'Reach level 50', check: () => user.level >= 50 },
+    { id: 'diverse_skiller', name: 'Renaissance Person', description: 'Level up 5 different skills in a single day', check: checkDiverseSkiller },
+    { id: 'night_owl', name: 'Night Owl', description: 'Complete an activity between 12 AM and 4 AM', check: checkNightOwl },
+    { id: 'early_bird', name: 'Early Bird', description: 'Complete an activity between 5 AM and 7 AM', check: checkEarlyBird },
 ];
+
+function checkDiverseSkiller() {
+    // Check if 5 different skills were leveled up in the last 24 hours
+    const lastDay = Date.now() - 24 * 60 * 60 * 1000;
+    const skilledLeveledUp = new Set();
+    activities.forEach(activity => {
+        if (activity.completed && activity.lastUpdated >= lastDay) {
+            skilledLeveledUp.add(activity.skillId);
+        }
+    });
+    return skilledLeveledUp.size >= 5;
+}
+
+function checkNightOwl() {
+    return activities.some(activity => {
+        if (activity.completed) {
+            const completionTime = new Date(activity.lastUpdated);
+            const hours = completionTime.getHours();
+            return hours >= 0 && hours < 4;
+        }
+        return false;
+    });
+}
+
+function checkEarlyBird() {
+    return activities.some(activity => {
+        if (activity.completed) {
+            const completionTime = new Date(activity.lastUpdated);
+            const hours = completionTime.getHours();
+            return hours >= 5 && hours < 7;
+        }
+        return false;
+    });
+}
 
 const SKILL_ICONS = [
     'fa-book', 'fa-dumbbell', 'fa-brain', 'fa-paint-brush', 'fa-code', 
@@ -70,6 +119,8 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         initializeDashboard();
     });
+
+    initDarkMode();
 
     const settingsBtn = document.getElementById('settingsBtn');
     if (settingsBtn) {
@@ -205,7 +256,13 @@ function signIn() {
     signInWithPopup(auth, provider)
         .then((result) => {
             console.log("User signed in:", result.user);
-            loadCloudData();
+            loadCloudData().then(() => {
+                // Immediately apply cloud dark mode preference
+                if (cloudData.hasOwnProperty('darkMode')) {
+                    applyDarkMode(cloudData.darkMode);
+                }
+                updateUIComponents();
+            });
             hideLoginOverlay();
         }).catch((error) => {
             console.error("Error during sign in:", error);
@@ -219,6 +276,11 @@ function userSignOut() {
         // Clear cloud data from memory
         cloudData = { user: null, skills: {}, activities: [], quests: [], rewards: [] };
         loadLocalData();
+        
+        // Immediately apply local dark mode preference
+        const localDarkMode = localStorage.getItem('localDarkMode') === 'true';
+        applyDarkMode(localDarkMode);
+        
         updateUIComponents();
     }).catch((error) => {
         console.error("Error during sign out:", error);
@@ -287,6 +349,11 @@ async function loadCloudData() {
         if (docSnap.exists()) {
             cloudData = docSnap.data();
             updateGlobalVariables(cloudData);
+            
+            // Apply dark mode based on cloud preference immediately
+            if (cloudData.hasOwnProperty('darkMode')) {
+                applyDarkMode(cloudData.darkMode);
+            }
         } else {
             // Initialize with empty data for a new user
             user = createDefaultUser();
@@ -315,7 +382,8 @@ async function saveCloudData() {
             skills: skills,
             activities: activities,
             quests: quests,
-            rewards: rewards
+            rewards: rewards,
+            darkMode: document.body.classList.contains('dark-mode')
         };
         await setDoc(doc(db, 'users', auth.currentUser.uid), dataToSave);
         console.log("Cloud data saved successfully");
@@ -558,8 +626,11 @@ function showSettingsMenu() {
                 <li><button id="exportDataBtn" class="settings-option">Export Data</button></li>
                 <li><button id="importDataBtn" class="settings-option">Import Data</button></li>
                 <li><button id="debugOptionsBtn" class="settings-option">Debug Options</button></li>
-                <li><button id="signOutBtn" class="settings-option">Sign Out</button></li>
+                <li><button id="darkModeToggle" class="settings-option">
+                    ${document.body.classList.contains('dark-mode') ? 'Disable' : 'Enable'} Dark Mode
+                </button></li>
             </ul>
+            <button id="signOutBtn" class="action-btn sign-out-btn">Sign Out</button>
         `;
     } else {
         content = `
@@ -573,8 +644,11 @@ function showSettingsMenu() {
                 <li><button id="exportDataBtn" class="settings-option">Export Data</button></li>
                 <li><button id="importDataBtn" class="settings-option">Import Data</button></li>
                 <li><button id="debugOptionsBtn" class="settings-option">Debug Options</button></li>
-                <li><button id="signInBtn" class="settings-option">Sign In</button></li>
+                <li><button id="darkModeToggle" class="settings-option">
+                    ${document.body.classList.contains('dark-mode') ? 'Disable' : 'Enable'} Dark Mode
+                </button></li>
             </ul>
+            <button id="signInBtn" class="action-btn sign-in-btn">Sign In</button>
         `;
     }
 
@@ -596,6 +670,11 @@ function showSettingsMenu() {
     document.getElementById('debugOptionsBtn').addEventListener('click', () => {
         closeModal(settingsMenu);
         showDebugOptions();
+    });
+    document.getElementById('darkModeToggle').addEventListener('click', () => {
+        toggleDarkMode();
+        closeModal(settingsMenu);
+        showSettingsMenu(); // Reopen the menu to reflect the change
     });
     
     if (currentUser) {
@@ -723,11 +802,83 @@ function updateMiniProfile() {
         miniProfileElement.innerHTML = `
             <img src="${user.avatar}" alt="Profile Picture" class="mini-profile-pic">
             <span class="mini-profile-name">${user.name}</span>
+            <button id="miniSignOutBtn" class="mini-sign-out-btn">Sign Out</button>
         `;
+        document.getElementById('miniSignOutBtn').addEventListener('click', userSignOut);
     } else {
         miniProfileElement.innerHTML = `
-            <span class="mini-profile-signin">Not signed in. Sign in to sync across devices.</span>
+            <span class="mini-profile-signin">Not signed in</span>
+            <button id="miniSignInBtn" class="mini-sign-in-btn">Sign In</button>
         `;
+        document.getElementById('miniSignInBtn').addEventListener('click', signIn);
+    }
+}
+
+// Dark mode
+function toggleDarkMode() {
+    const isDarkMode = !document.body.classList.contains('dark-mode');
+    applyDarkMode(isDarkMode);
+    
+    if (auth.currentUser) {
+        // Save to cloud storage for logged-in users
+        saveUserPreferences(isDarkMode);
+    } else {
+        // Save to local storage for non-logged-in users
+        localStorage.setItem('localDarkMode', isDarkMode);
+    }
+    
+    // Immediately update UI components that might be affected by dark mode
+    updateUIComponents();
+}
+
+function applyDarkMode(isDarkMode) {
+    if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
+    // Update any UI components that might be affected by dark mode
+    updateDarkModeUI();
+}
+
+async function initDarkMode() {
+    if (auth.currentUser) {
+        // User is logged in, use cloud preference
+        try {
+            const docSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+            if (docSnap.exists() && docSnap.data().hasOwnProperty('darkMode')) {
+                applyDarkMode(docSnap.data().darkMode);
+            }
+        } catch (error) {
+            console.error("Error fetching dark mode preference:", error);
+        }
+    } else {
+        // User is not logged in, use local storage
+        const localDarkMode = localStorage.getItem('localDarkMode') === 'true';
+        applyDarkMode(localDarkMode);
+    }
+}
+
+function updateDarkModeUI() {
+
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    if (darkModeToggle) {
+        darkModeToggle.textContent = document.body.classList.contains('dark-mode') ? 'Disable Dark Mode' : 'Enable Dark Mode';
+    }
+    
+}
+
+// Save user preferences to cloud storage
+async function saveUserPreferences(isDarkMode) {
+    if (!auth.currentUser) return;
+
+    try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), {
+            darkMode: isDarkMode
+        }, { merge: true });
+        console.log("Dark mode preference saved to cloud");
+    } catch (error) {
+        console.error("Error saving dark mode preference:", error);
     }
 }
 
@@ -1994,7 +2145,7 @@ function createModal(title, content) {
         </div>
     `;
     document.body.appendChild(modal);
-    modal.style.display = 'block';
+    modal.style.display = 'flex';  // Changed from 'block' to 'flex'
 
     const closeBtn = modal.querySelector('.close');
     closeBtn.onclick = function() {
@@ -2006,6 +2157,13 @@ function createModal(title, content) {
             closeModal(modal);
         }
     };
+
+    // Ensure the modal is scrollable if its content is too long
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent.offsetHeight > window.innerHeight) {
+        modalContent.style.height = '90vh';
+        modalContent.style.overflowY = 'auto';
+    }
 
     return modal;
 }

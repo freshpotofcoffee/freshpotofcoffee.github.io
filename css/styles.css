@@ -12,6 +12,75 @@
     --sidebar-mobile-height: 60px;
 }
 
+/* Dark mode */
+.dark-mode {
+    --primary-color: #0a0705;
+    --secondary-color: #1c1410;
+    --accent-color: #d4af37;  /* A more vibrant gold for better contrast */
+    --text-color: #e0d8b0;
+    --background-color: #000000;
+    --sidebar-color: #0a0705;
+    --card-background: rgba(28, 20, 16, 0.8);
+}
+
+body, .sidebar, .main-content, .modal-content {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-mode body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.dark-mode .sidebar {
+    background-color: var(--sidebar-color);
+}
+
+.dark-mode .dashboard-card,
+.dark-mode .grid-item,
+.dark-mode .modal-content {
+    background-color: var(--card-background);
+}
+
+.dark-mode .action-btn,
+.dark-mode .nav-btn {
+    background-color: var(--secondary-color);
+    color: var(--accent-color);
+}
+
+.dark-mode .action-btn:hover,
+.dark-mode .nav-btn:hover {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+}
+
+.dark-mode .progress-bar {
+    background-color: var(--secondary-color);
+}
+
+.dark-mode .progress-fill {
+    background-color: var(--accent-color);
+}
+
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border-color: var(--accent-color);
+}
+
+.dark-mode .close {
+    color: var(--accent-color);
+}
+
+.dark-mode .close:hover,
+.dark-mode .close:focus {
+    color: var(--text-color);
+}
+
+/* End dark mode */
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -154,6 +223,57 @@ h1 { font-size: 2rem; margin-bottom: 1.5rem; }
 h2 { font-size: 1.75rem; margin-bottom: 1rem; }
 h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 
+.sign-in-btn, .sign-out-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-top: 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: center;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.sign-in-btn {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+}
+
+.sign-out-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.sign-in-btn:hover, .sign-out-btn:hover {
+    opacity: 0.9;
+}
+
+.mini-sign-in-btn, .mini-sign-out-btn {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.mini-sign-in-btn {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+}
+
+.mini-sign-out-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.mini-sign-in-btn:hover, .mini-sign-out-btn:hover {
+    opacity: 0.9;
+}
+
 .user-profile {
     display: flex;
     align-items: center;
@@ -189,6 +309,16 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     margin-bottom: 1rem;
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 5px;
+}
+
+#userProfileMini {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    margin-bottom: 10px;
 }
 
 .user-profile-mini .mini-profile-pic {
@@ -756,17 +886,32 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     height: 100%;
     overflow: auto;
     background-color: rgba(0,0,0,0.4);
+    justify-content: center;
+    align-items: center;
 }
 
 .modal-content {
     background-color: var(--background-color);
-    margin: 15% auto;
+    margin: auto;
     padding: 20px;
     border: 1px solid var(--secondary-color);
     border-radius: 10px;
     width: 80%;
     max-width: 500px;
     position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content form {
+    max-width: 100%;
+}
+
+.modal-content input,
+.modal-content select,
+.modal-content textarea {
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .close {
@@ -775,7 +920,9 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
-    z-index: 1101; /* Slightly higher than modal-content */
+    position: sticky;
+    top: 0;
+    right: 10px;
 }
 
 .close:hover,
@@ -1506,6 +1653,10 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
         flex-direction: column;
     }
 
+    .dashboard {
+        padding: 10px;
+    }
+
     .sidebar {
         transform: translateX(-100%);
         width: 100%;
@@ -1591,7 +1742,7 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     }
 
     .hero-section {
-        padding: 1rem;
+        padding: 15px;
         background-image: linear-gradient(to top, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.25)), url('../images/hero-background.webp');
         background-size: cover;
         background-position: center;
@@ -1758,6 +1909,11 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
 
     .activity-table th,
     .activity-table td {
-        padding: 0.5rem 0.25rem;
+        padding: 8px 5px;
+    }
+
+    .activity-table th:nth-child(2),
+    .activity-table td:nth-child(2) {
+        display: none; /* Hide the Skill column on mobile */
     }
 }
