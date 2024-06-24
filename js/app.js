@@ -61,6 +61,7 @@ document.addEventListener("DOMContentLoaded", function() {
     updateUserInfoDisplay();
     
     if (!auth.currentUser) {
+        resetToDefaultData();
         showLoginOverlay();
     }
 
@@ -243,6 +244,18 @@ function userSignOut() {
     });
 }
 
+function resetToDefaultData() {
+    const defaultData = getDefaultData();
+    user = defaultData.user;
+    skills = defaultData.skills;
+    activities = defaultData.activities;
+    quests = defaultData.quests;
+    rewards = defaultData.rewards;
+    updateUserInfoDisplay();
+    updateMiniProfile();
+    loadSection('overview');
+}
+
 // Load User Data function
 async function loadUserData(userId) {
     if (!userId) {
@@ -260,11 +273,7 @@ async function loadUserData(userId) {
             rewards = data.rewards || [];
         } else {
             console.log("No user data found in Firebase, creating new profile");
-            user = createDefaultUser();
-            skills = {};
-            activities = [];
-            quests = [];
-            rewards = [];
+            resetToDefaultData();
             await saveUserData(userId);
         }
         
@@ -273,6 +282,7 @@ async function loadUserData(userId) {
         loadSection('overview');
     } catch (error) {
         console.error("Error loading user data:", error);
+        resetToDefaultData();
     }
 }
 
