@@ -172,7 +172,7 @@ function showLoginOverlay() {
     `;
     loginPrompt.innerHTML = `
         <h2>Login Required</h2>
-        <p>You need to be logged in to use this app.</p>
+        <p>You need to be logged in to use this app.</p><br />>
         <button id="loginBtn" class="action-btn">Log In</button>
     `;
 
