@@ -71,15 +71,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         } else {
             console.log("No user signed in");
-            const defaultData = getDefaultData();
-            user = defaultData.user;
-            skills = defaultData.skills;
-            activities = defaultData.activities;
-            quests = defaultData.quests;
-            rewards = defaultData.rewards;
-            updateUserInfoDisplay();
-            updateMiniProfile();
-            loadSection('overview');
+            resetToDefaultData();
             showLoginOverlay();
         }
     });
@@ -2115,39 +2107,6 @@ function closeModal(modal) {
     modal.remove();
 }
 
-function saveToLocalStorage() {
-    try {
-        localStorage.setItem('localUser', JSON.stringify(user));
-        localStorage.setItem('localSkills', JSON.stringify(skills));
-        localStorage.setItem('localActivities', JSON.stringify(activities));
-        localStorage.setItem('localQuests', JSON.stringify(quests));
-        localStorage.setItem('localRewards', JSON.stringify(rewards));
-        console.log('Data saved to local storage');
-    } catch (error) {
-        console.error('Error saving to local storage:', error);
-    }
-}
-
-function loadFromLocalStorage() {
-    try {
-        const savedUser = JSON.parse(localStorage.getItem('localUser'));
-        user = savedUser ? {...createDefaultUser(), ...savedUser} : createDefaultUser();
-        skills = JSON.parse(localStorage.getItem('localSkills')) || {};
-        activities = JSON.parse(localStorage.getItem('localActivities')) || [];
-        quests = JSON.parse(localStorage.getItem('localQuests')) || [];
-        rewards = JSON.parse(localStorage.getItem('localRewards')) || [];
-        console.log('Data loaded from local storage');
-    } catch (error) {
-        console.error('Error loading from local storage:', error);
-        user = createDefaultUser();
-        skills = {};
-        activities = [];
-        quests = [];
-        rewards = [];
-    }
-    updateUserInfoDisplay();
-}
-
 function showEditProfileForm() {
     if (!auth.currentUser) {
         console.log("User not logged in. Action not performed.");
@@ -2255,9 +2214,6 @@ async function purgeData(dataType) {
             rewards = [];
             break;
     }
-
-    // Update local storage
-    saveToLocalStorage();
 
     // Update Firebase if user is logged in
     if (currentUser) {
