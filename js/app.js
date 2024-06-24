@@ -172,7 +172,7 @@ function showLoginOverlay() {
     `;
     loginPrompt.innerHTML = `
         <h2>Login Required</h2>
-        <p>You need to be logged in to use this app.</p><br />>
+        <p>You need to be logged in to use this app.</p><br />
         <button id="loginBtn" class="action-btn">Log In</button>
     `;
 
@@ -291,14 +291,7 @@ async function saveUserData(userId) {
     }
     try {
         await setDoc(doc(db, 'users', userId), {
-            name: user.name,
-            xp: user.xp,
-            level: user.level,
-            achievements: user.achievements,
-            avatar: user.avatar,
-            lastActivityDate: user.lastActivityDate,
-            currentStreak: user.currentStreak,
-            longestStreak: user.longestStreak,
+            user: user,  // Save the entire user object
             skills: skills,
             activities: activities,
             quests: quests,
@@ -678,11 +671,6 @@ function loadSection(sectionName) {
         return;
     }
     mainContent.innerHTML = '';
-
-    // Only load from local storage if user is not signed in
-    if (!auth.currentUser) {
-        loadFromLocalStorage();
-    }
 
     switch(sectionName) {
         case 'overview':
