@@ -56,8 +56,10 @@ function generateUniqueId() {
 document.getElementById('helpBtn').addEventListener('click', startWalkthrough);
 
 document.addEventListener("DOMContentLoaded", function() {
+    clearLocalStorage();
     initializeDashboard();
     updateUserInfoDisplay();
+    
 
     auth.onAuthStateChanged((currentUser) => {
         if (currentUser) {
@@ -220,6 +222,7 @@ function signIn() {
     signInWithPopup(auth, provider)
         .then((result) => {
             console.log("User signed in:", result.user);
+            clearLocalStorage();
             loadUserData(result.user.uid);
         }).catch((error) => {
             console.error("Error during sign in:", error);
@@ -2179,6 +2182,15 @@ function showEditProfileForm() {
     });
 }
 
+function clearLocalStorage() {
+    localStorage.removeItem('localUser');
+    localStorage.removeItem('localSkills');
+    localStorage.removeItem('localActivities');
+    localStorage.removeItem('localQuests');
+    localStorage.removeItem('localRewards');
+    console.log('Local storage cleared');
+}
+
 function showDebugOptions() {
     const debugModal = createModal('Debug Options', `
         <div class="debug-options">
@@ -2188,6 +2200,7 @@ function showDebugOptions() {
             <button id="purgeActivitiesBtn" class="action-btn">Purge Activities</button>
             <button id="purgeQuestsBtn" class="action-btn">Purge Quests</button>
             <button id="purgeRewardsBtn" class="action-btn">Purge Rewards</button>
+            <button id="clearLocalStorageBtn" class="action-btn">Clear Local Storage</button>
         </div>
     `);
 
@@ -2196,6 +2209,8 @@ function showDebugOptions() {
     document.getElementById('purgeActivitiesBtn').addEventListener('click', () => purgeData('activities'));
     document.getElementById('purgeQuestsBtn').addEventListener('click', () => purgeData('quests'));
     document.getElementById('purgeRewardsBtn').addEventListener('click', () => purgeData('rewards'));
+    document.getElementById('clearLocalStorageBtn').addEventListener('click', clearLocalStorage);
+
 }
 
 async function purgeData(dataType) {
