@@ -1,5 +1,6 @@
 # Ignore the entire app directory
 /app
+/old-js
 
 # Ignore node_modules everywhere
 node_modules
