@@ -70,14 +70,15 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         } else {
             console.log("No user signed in");
-            user = createDefaultUser();
-            skills = {};
-            activities = [];
-            quests = [];
-            rewards = [];
+            const defaultData = getDefaultData();
+            user = defaultData.user;
+            skills = defaultData.skills;
+            activities = defaultData.activities;
+            quests = defaultData.quests;
+            rewards = defaultData.rewards;
             updateUserInfoDisplay();
             updateMiniProfile();
-            showLoginOverlay();
+            loadSection('overview');
         }
     });
 
@@ -330,6 +331,26 @@ async function saveUserData(userId) {
       }
     });
   }
+
+function getDefaultData() {
+    return {
+        user: createDefaultUser(),
+        skills: {
+            'default_skill_1': { id: 'default_skill_1', name: 'Reading', xp: 50, level: 2, icon: 'fa-book' },
+            'default_skill_2': { id: 'default_skill_2', name: 'Fitness', xp: 30, level: 1, icon: 'fa-dumbbell' },
+            'default_skill_3': { id: 'default_skill_3', name: 'Coding', xp: 80, level: 3, icon: 'fa-code' }
+        },
+        activities: [
+            { id: 'default_activity_1', name: 'Read a chapter', xp: 10, skillId: 'default_skill_1', completed: true, lastUpdated: Date.now() - 86400000 },
+            { id: 'default_activity_2', name: '30 min workout', xp: 20, skillId: 'default_skill_2', completed: false, lastUpdated: Date.now() - 172800000 },
+            { id: 'default_activity_3', name: 'Code for an hour', xp: 30, skillId: 'default_skill_3', completed: true, lastUpdated: Date.now() - 259200000 }
+        ],
+        quests: [
+            { id: 'default_quest_1', name: 'Reading Challenge', description: 'Read 5 chapters this week', activities: ['default_activity_1'], reward: '50 XP', completed: false }
+        ],
+        rewards: []
+    };
+}
 
 function showWelcomeModal() {
     const modalContent = `
@@ -797,23 +818,36 @@ function loadHowToUseSection() {
 function loadOverviewSection() {
     const mainContent = document.getElementById('mainContent');
     if (!mainContent) return;
-    
-    if (!user) {
-        user = createDefaultUser();
+
+    let currentUser, currentSkills, currentActivities, currentQuests, currentRewards;
+
+    if (auth.currentUser) {
+        currentUser = user;
+        currentSkills = skills;
+        currentActivities = activities;
+        currentQuests = quests;
+        currentRewards = rewards;
+    } else {
+        const defaultData = getDefaultData();
+        currentUser = defaultData.user;
+        currentSkills = defaultData.skills;
+        currentActivities = defaultData.activities;
+        currentQuests = defaultData.quests;
+        currentRewards = defaultData.rewards;
     }
 
-    const nextLevelXP = xpForNextLevel(user.level);
+    const nextLevelXP = xpForNextLevel(currentUser.level);
     const currentLevelXP = nextLevelXP - XP_PER_LEVEL;
-    const xpProgress = ((user.xp - currentLevelXP) / XP_PER_LEVEL) * 100;
-    const masteredSkillsCount = Object.values(skills).filter(s => s.level >= MAX_SKILL_LEVEL).length;
-    const totalSkills = Object.keys(skills).length;
-    const completedQuests = quests.filter(q => q.completed).length;
-    const totalQuests = quests.length;
-    const recentActivities = activities
+    const xpProgress = ((currentUser.xp - currentLevelXP) / XP_PER_LEVEL) * 100;
+    const masteredSkillsCount = Object.values(currentSkills).filter(s => s.level >= MAX_SKILL_LEVEL).length;
+    const totalSkills = Object.keys(currentSkills).length;
+    const completedQuests = currentQuests.filter(q => q.completed).length;
+    const totalQuests = currentQuests.length;
+    const recentActivities = currentActivities
         .sort((a, b) => b.lastUpdated - a.lastUpdated)
         .slice(0, 5);
 
-    const topSkills = Object.entries(skills)
+    const topSkills = Object.entries(currentSkills)
         .sort((a, b) => b[1].level - a[1].level)
         .slice(0, 3);
 
@@ -842,21 +876,21 @@ mainContent.innerHTML = `
         <div class="hero-content">
             <div class="user-info">
                 <div class="avatar-frame">
-                    <img src="${user.avatar || '../images/default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
+                    <img src="${currentUser.avatar || '../images/default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
                 </div>
                 <div class="user-details">
-                    <h2 id="userName">${user.name}</h2>
+                    <h2 id="userName">${currentUser.name}</h2>
                     <div class="user-level">
-                        <span id="userLevel">Level ${user.level}</span>
+                        <span id="userLevel">Level ${currentUser.level}</span>
                         <i class="fas fa-star"></i>
                     </div>
                     <div class="xp-bar">
                         <div class="xp-fill" id="xpFill" style="width: ${xpProgress}%"></div>
                     </div>
-                    <p id="xpInfo">${user.xp - currentLevelXP} / ${XP_PER_LEVEL} XP to next level</p>
+                    <p id="xpInfo">${currentUser.xp - currentLevelXP} / ${XP_PER_LEVEL} XP to next level</p>
                     <div id="streakInfo" class="streak-info">
-                        <span class="current-streak"><i class="fas fa-fire"></i> Current: ${user.currentStreak} days</span>
-                        <span class="longest-streak"><i class="fas fa-trophy"></i> Longest: ${user.longestStreak} days</span>
+                        <span class="current-streak"><i class="fas fa-fire"></i> Current: ${currentUser.currentStreak} days</span>
+                        <span class="longest-streak"><i class="fas fa-trophy"></i> Longest: ${currentUser.longestStreak} days</span>
                     </div>
                 </div>
             </div>
