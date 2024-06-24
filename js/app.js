@@ -60,6 +60,9 @@ document.addEventListener("DOMContentLoaded", function() {
     initializeDashboard();
     updateUserInfoDisplay();
     
+    if (!auth.currentUser) {
+        showLoginOverlay();
+    }
 
     auth.onAuthStateChanged((currentUser) => {
         if (currentUser) {
@@ -67,7 +70,7 @@ document.addEventListener("DOMContentLoaded", function() {
             loadUserData(currentUser.uid);
             const loginOverlay = document.getElementById('loginOverlay');
             if (loginOverlay) {
-                loginOverlay.remove();
+                loginOverlay.style.display = 'none';
             }
         } else {
             console.log("No user signed in");
@@ -143,43 +146,48 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 function showLoginOverlay() {
-    const overlay = document.createElement('div');
-    overlay.id = 'loginOverlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    `;
+    let overlay = document.getElementById('loginOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loginOverlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        `;
 
-    const loginPrompt = document.createElement('div');
-    loginPrompt.style.cssText = `
-        background-color: var(--background-color);
-        padding: 2rem;
-        border-radius: 10px;
-        text-align: center;
-    `;
-    loginPrompt.innerHTML = `
-        <h2>Login Required</h2>
-        <p>You need to be logged in to use this app.</p><br />
-        <button id="loginBtn" class="action-btn">Log In</button>
-    `;
+        const loginPrompt = document.createElement('div');
+        loginPrompt.style.cssText = `
+            background-color: var(--background-color);
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        `;
+        loginPrompt.innerHTML = `
+            <h2>Login Required</h2>
+            <p>You need to be logged in to use this app.</p><br />
+            <button id="loginBtn" class="action-btn">Log In</button>
+        `;
 
-    overlay.appendChild(loginPrompt);
-    document.body.appendChild(overlay);
+        overlay.appendChild(loginPrompt);
+        document.body.appendChild(overlay);
 
-    document.getElementById('loginBtn').addEventListener('click', signIn);
+        document.getElementById('loginBtn').addEventListener('click', signIn);
+    } else {
+        overlay.style.display = 'flex';
+    }
 }
 
 function showLoginPrompt() {
     const loginPrompt = createModal('Login Required', `
-        <p>You need to be logged in to use this app.</p>
+        <p>You need to be logged in to use this app.</p><br />
         <button id="loginBtn" class="action-btn">Log In</button>
     `);
 
@@ -214,8 +222,11 @@ function signIn() {
     signInWithPopup(auth, provider)
         .then((result) => {
             console.log("User signed in:", result.user);
-            clearLocalStorage();
             loadUserData(result.user.uid);
+            const loginOverlay = document.getElementById('loginOverlay');
+            if (loginOverlay) {
+                loginOverlay.style.display = 'none';
+            }
         }).catch((error) => {
             console.error("Error during sign in:", error);
         });
@@ -225,13 +236,7 @@ function signIn() {
 function userSignOut() {
     signOut(auth).then(() => {
         console.log("User signed out");
-        user = createDefaultUser();
-        skills = {};
-        activities = [];
-        quests = [];
-        rewards = [];
-        updateUserInfoDisplay();
-        updateMiniProfile();
+        resetToDefaultData();
         showLoginOverlay();
     }).catch((error) => {
         console.error("Error during sign out:", error);
@@ -327,7 +332,7 @@ async function saveUserData(userId) {
     });
   }
 
-function getDefaultData() {
+  function getDefaultData() {
     return {
         user: createDefaultUser(),
         skills: {
@@ -336,12 +341,19 @@ function getDefaultData() {
             'default_skill_3': { id: 'default_skill_3', name: 'Coding', xp: 80, level: 3, icon: 'fa-code' }
         },
         activities: [
-            { id: 'default_activity_1', name: 'Read a chapter', xp: 10, skillId: 'default_skill_1', completed: true, lastUpdated: Date.now() - 86400000 },
+            { id: 'default_activity_1', name: 'Read a chapter', xp: 10, skillId: 'default_skill_1', completed: false, lastUpdated: Date.now() - 86400000 },
             { id: 'default_activity_2', name: '30 min workout', xp: 20, skillId: 'default_skill_2', completed: false, lastUpdated: Date.now() - 172800000 },
             { id: 'default_activity_3', name: 'Code for an hour', xp: 30, skillId: 'default_skill_3', completed: true, lastUpdated: Date.now() - 259200000 }
         ],
         quests: [
-            { id: 'default_quest_1', name: 'Reading Challenge', description: 'Read 5 chapters this week', activities: ['default_activity_1'], reward: '50 XP', completed: false }
+            { 
+                id: 'default_quest_1', 
+                name: 'Reading Challenge', 
+                description: 'Read 5 chapters this week', 
+                activities: ['default_activity_1'], 
+                reward: '50 XP', 
+                completed: false
+            }
         ],
         rewards: []
     };
@@ -842,6 +854,8 @@ function loadOverviewSection() {
     const topSkills = Object.entries(currentSkills)
         .sort((a, b) => b[1].level - a[1].level)
         .slice(0, 3);
+    
+    const activeQuests = currentQuests.filter(q => !q.completed);
 
     const topSkillsLimit = 3;
     const recentActivitiesLimit = 5;
@@ -970,8 +984,10 @@ mainContent.innerHTML = `
                 <div class="dashboard-card active-quests">
                 <h3>Active Quests</h3>
                 <div class="card-content">
-                    ${quests.filter(q => !q.completed).slice(0, 3).map(quest => {
-                        const completedActivities = quest.activities.filter(a => activities.find(act => act.id === a && act.completed)).length;
+                    ${activeQuests.length > 0 ? activeQuests.slice(0, 3).map(quest => {
+                        const completedActivities = quest.activities.filter(actId => 
+                            currentActivities.find(act => act.id === actId && act.completed)
+                        ).length;
                         const totalActivities = quest.activities.length;
                         const progressPercentage = (completedActivities / totalActivities) * 100;
                         
@@ -988,13 +1004,13 @@ mainContent.innerHTML = `
                                 </div>
                             </div>
                         `;
-                    }).join('') || '<p class="no-quests">No active quests</p>'}
+                    }).join('') : '<p class="no-quests">No active quests</p>'}
                 </div>
-                ${quests.filter(q => !q.completed).length > 3 ? '<a href="#" class="see-more">View all quests</a>' : ''}
+                ${activeQuests.length > 3 ? '<a href="#" class="see-more">View all quests</a>' : ''}
             </div>
         </div>
     </div>
-`;
+    `;
 
 const seeMoreLinks = mainContent.querySelectorAll('.see-more');
 seeMoreLinks[0]?.addEventListener('click', () => loadSection('skills'));
