@@ -66,8 +66,8 @@ document.addEventListener("DOMContentLoaded", function() {
             loadUserData(currentUser.uid);
         } else {
             console.log("No user signed in");
-            loadFromLocalStorage();
-            updateMiniProfile();
+            // Redirect to login page or show login modal
+            showLoginPrompt();
         }
     });
 
@@ -137,6 +137,18 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
+function showLoginPrompt() {
+    const loginPrompt = createModal('Login Required', `
+        <p>You need to be logged in to use this app.</p>
+        <button id="loginBtn" class="action-btn">Log In</button>
+    `);
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+        closeModal(loginPrompt);
+        signIn();
+    });
+}
+
 function checkAndStartTutorial() {
     const tutorialCompleted = localStorage.getItem('tutorialCompleted');
     if (tutorialCompleted !== 'true') {
@@ -170,19 +182,15 @@ function signIn() {
 
 // Sign Out function
 function userSignOut() {
-    const localData = {
-        user: user,
-        skills: skills,
-        activities: activities,
-        quests: quests,
-        rewards: rewards
-    };
-    
     signOut(auth).then(() => {
         console.log("User signed out");
-        // Load the local data that was saved before signing in
-        loadFromLocalStorage();
-        
+        // Clear all data
+        user = createDefaultUser();
+        skills = {};
+        activities = [];
+        quests = [];
+        rewards = [];
+
         updateUserInfoDisplay();
         updateMiniProfile();
         loadSection('overview');
@@ -221,18 +229,15 @@ async function loadUserData(userId) {
         loadSection('overview');
     } catch (error) {
         console.error("Error loading user data:", error);
-        if (error.code === 'unavailable') {
-            console.log("The app is offline. Using local data if available.");
-            loadFromLocalStorage();
-        }
     }
 }
 
 function saveData() {
     if (auth.currentUser) {
         saveUserData(auth.currentUser.uid);
+    } else {
+        console.log("User not logged in. Data not saved.");
     }
-    saveToLocalStorage();
 }
 
 // Save User Data function
@@ -503,66 +508,45 @@ function isElementVisible(el) {
 
 function showSettingsMenu() {
     const currentUser = auth.currentUser;
-    let content = '';
-
-    if (currentUser) {
-        // User is signed in
-        content += `
-            <div class="user-profile-summary">
-                <img src="${user.avatar}" alt="Profile Picture" class="profile-pic">
-                <p class="user-name">${user.name}</p>
-                <p class="user-email">${currentUser.email}</p>
-            </div>
-        `;
-    } else {
-        // User is signed out
-        content += `
-            <p>You are not signed in.</p><br />
-        `;
+    if (!currentUser) {
+        showLoginPrompt();
+        return;
     }
 
-    content += `
+    let content = `
+        <div class="user-profile-summary">
+            <img src="${user.avatar}" alt="Profile Picture" class="profile-pic">
+            <p class="user-name">${user.name}</p>
+            <p class="user-email">${currentUser.email}</p>
+        </div>
         <ul class="settings-menu">
-            ${currentUser ? 
-                `<li><button id="editProfileBtn" class="settings-option">Edit Profile</button></li>
-                 <li><button id="signOutBtn" class="settings-option">Sign Out</button></li>` :
-                `<li><button id="signInBtn" class="settings-option">Sign In</button></li>`
-            }
+            <li><button id="editProfileBtn" class="settings-option">Edit Profile</button></li>
             <li><button id="exportDataBtn" class="settings-option">Export Data</button></li>
             <li><button id="importDataBtn" class="settings-option">Import Data</button></li>
             <li><button id="debugOptionsBtn" class="settings-option">Debug Options</button></li>
+            <li><button id="signOutBtn" class="settings-option">Sign Out</button></li>
         </ul>
     `;
 
     const settingsMenu = createModal('Settings', content);
 
     // Add event listeners
-    if (currentUser) {
-        document.getElementById('editProfileBtn').addEventListener('click', () => {
-            closeModal(settingsMenu);
-            showEditProfileForm();
-        });
-        document.getElementById('signOutBtn').addEventListener('click', () => {
-            closeModal(settingsMenu);
-            userSignOut();
-        });
-    } else {
-        document.getElementById('signInBtn').addEventListener('click', () => {
-            closeModal(settingsMenu);
-            signIn();
-        });
-    }
-
+    document.getElementById('editProfileBtn').addEventListener('click', () => {
+        closeModal(settingsMenu);
+        showEditProfileForm();
+    });
+    document.getElementById('signOutBtn').addEventListener('click', () => {
+        closeModal(settingsMenu);
+        userSignOut();
+    });
     document.getElementById('exportDataBtn').addEventListener('click', () => {
         closeModal(settingsMenu);
         exportData();
     });
-
     document.getElementById('importDataBtn').addEventListener('click', () => {
         closeModal(settingsMenu);
         importData();
     });
-
     document.getElementById('debugOptionsBtn').addEventListener('click', () => {
         closeModal(settingsMenu);
         showDebugOptions();
