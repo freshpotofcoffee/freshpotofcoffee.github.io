@@ -6,6 +6,9 @@ let rewards = [];
 let user = createDefaultUser();
 let scrollbars = {};
 
+let localData = { user: null, skills: {}, activities: [], quests: [], rewards: [] };
+let cloudData = { user: null, skills: {}, activities: [], quests: [], rewards: [] };
+
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js';
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
 import { getFirestore, doc, setDoc, getDoc, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js';
@@ -56,28 +59,16 @@ function generateUniqueId() {
 document.getElementById('helpBtn').addEventListener('click', startWalkthrough);
 
 document.addEventListener("DOMContentLoaded", function() {
-    clearLocalStorage();
-    initializeDashboard();
-    updateUserInfoDisplay();
-    
-    if (!auth.currentUser) {
-        resetToDefaultData();
-        showLoginOverlay();
-    }
-
     auth.onAuthStateChanged((currentUser) => {
         if (currentUser) {
             console.log("User is signed in");
-            loadUserData(currentUser.uid);
-            const loginOverlay = document.getElementById('loginOverlay');
-            if (loginOverlay) {
-                loginOverlay.style.display = 'none';
-            }
+            loadCloudData();
+            hideLoginOverlay();
         } else {
             console.log("No user signed in");
-            resetToDefaultData();
-            showLoginOverlay();
+            loadLocalData();
         }
+        initializeDashboard();
     });
 
     const settingsBtn = document.getElementById('settingsBtn');
@@ -172,36 +163,26 @@ function showLoginOverlay() {
             text-align: center;
         `;
         loginPrompt.innerHTML = `
-            <h2>Account Required</h2>
-            <p>You need an account to begin your Habit Adventure.</p><br />
+            <h2>Create an Account</h2>
+            <p>Create an account to sync your data across devices.</p><br />
             <button id="loginBtn" class="action-btn">Register / Log In</button>
+            <button id="continueLocalBtn" class="secondary-btn">Continue without account</button>
         `;
 
         overlay.appendChild(loginPrompt);
         document.body.appendChild(overlay);
 
         document.getElementById('loginBtn').addEventListener('click', signIn);
+        document.getElementById('continueLocalBtn').addEventListener('click', hideLoginOverlay);
     } else {
         overlay.style.display = 'flex';
     }
 }
 
-function showLoginPrompt() {
-    const loginPrompt = createModal('Login Required', `
-        <p>You need to be logged in to use this app.</p><br />
-        <button id="loginBtn" class="action-btn">Log In</button>
-    `);
-
-    document.getElementById('loginBtn').addEventListener('click', () => {
-        closeModal(loginPrompt);
-        signIn();
-    });
-}
-
-function checkAndStartTutorial() {
-    const tutorialCompleted = localStorage.getItem('tutorialCompleted');
-    if (tutorialCompleted !== 'true') {
-        startWalkthrough();
+function hideLoginOverlay() {
+    const loginOverlay = document.getElementById('loginOverlay');
+    if (loginOverlay) {
+        loginOverlay.style.display = 'none';
     }
 }
 
@@ -218,16 +199,14 @@ function createDefaultUser() {
     };
 }
 
+// Sign In function
 function signIn() {
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider)
         .then((result) => {
             console.log("User signed in:", result.user);
-            loadUserData(result.user.uid);
-            const loginOverlay = document.getElementById('loginOverlay');
-            if (loginOverlay) {
-                loginOverlay.style.display = 'none';
-            }
+            loadCloudData();
+            hideLoginOverlay();
         }).catch((error) => {
             console.error("Error during sign in:", error);
         });
@@ -237,136 +216,123 @@ function signIn() {
 function userSignOut() {
     signOut(auth).then(() => {
         console.log("User signed out");
-        resetToDefaultData();
-        showLoginOverlay();
+        // Clear cloud data from memory
+        cloudData = { user: null, skills: {}, activities: [], quests: [], rewards: [] };
+        loadLocalData();
+        updateUIComponents();
     }).catch((error) => {
         console.error("Error during sign out:", error);
     });
 }
 
-function resetToDefaultData() {
-    const defaultData = getDefaultData();
-    user = defaultData.user;
-    skills = defaultData.skills;
-    activities = defaultData.activities;
-    quests = defaultData.quests;
-    rewards = defaultData.rewards;
-    updateUserInfoDisplay();
-    updateMiniProfile();
-    loadSection('overview');
+function isUserLoggedIn() {
+    return !!auth.currentUser;
 }
 
-// Load User Data function
-async function loadUserData(userId) {
-    if (!userId) {
-        console.error("No user ID provided");
-        return;
-    }
-    try {
-        const docSnap = await getDoc(doc(db, 'users', userId));
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            user = data.user || createDefaultUser();
-            skills = data.skills || {};
-            activities = data.activities || [];
-            quests = data.quests || [];
-            rewards = data.rewards || [];
-        } else {
-            console.log("No user data found in Firebase, creating new profile");
-            resetToDefaultData();
-            await saveUserData(userId);
-        }
-        
-        updateUserInfoDisplay();
-        updateMiniProfile();
-        loadSection('overview');
-    } catch (error) {
-        console.error("Error loading user data:", error);
-        resetToDefaultData();
+function loadData() {
+    if (auth.currentUser) {
+        loadCloudData();
+    } else {
+        loadLocalData();
     }
 }
+
 
 function saveData() {
     if (auth.currentUser) {
-        saveUserData(auth.currentUser.uid);
+        saveCloudData();
     } else {
-        console.log("User not logged in. Data not saved.");
+        saveLocalData();
+    }
+    // Update the appropriate data container
+    const currentData = auth.currentUser ? cloudData : localData;
+    currentData.user = user;
+    currentData.skills = skills;
+    currentData.activities = activities;
+    currentData.quests = quests;
+    currentData.rewards = rewards;
+}
+
+function loadLocalData() {
+    const storedData = localStorage.getItem('habitAdventureData');
+    if (storedData) {
+        localData = JSON.parse(storedData);
+        updateGlobalVariables(localData);
+    } else {
+        // Initialize with empty data for a new user
+        user = createDefaultUser();
+        skills = {};
+        activities = [];
+        quests = [];
+        rewards = [];
+        saveLocalData(); // Save this initial state
+    }
+    updateUIComponents();
+}
+
+function saveLocalData() {
+    const dataToSave = {
+        user: user,
+        skills: skills,
+        activities: activities,
+        quests: quests,
+        rewards: rewards
+    };
+    localStorage.setItem('habitAdventureData', JSON.stringify(dataToSave));
+}
+
+async function loadCloudData() {
+    try {
+        const docSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        if (docSnap.exists()) {
+            cloudData = docSnap.data();
+            updateGlobalVariables(cloudData);
+        } else {
+            // Initialize with empty data for a new user
+            user = createDefaultUser();
+            skills = {};
+            activities = [];
+            quests = [];
+            rewards = [];
+            await saveCloudData(); // Save this initial state
+        }
+        updateUIComponents();
+    } catch (error) {
+        console.error("Error loading cloud data:", error);
+        // Initialize with empty data in case of error
+        user = createDefaultUser();
+        skills = {};
+        activities = [];
+        quests = [];
+        rewards = [];
     }
 }
 
-// Save User Data function
-async function saveUserData(userId) {
-    if (!userId) {
-        console.error("No user ID provided");
-        return Promise.reject("No user ID provided");
-    }
+async function saveCloudData() {
     try {
-        await setDoc(doc(db, 'users', userId), {
-            user: user,  // Save the entire user object
+        const dataToSave = {
+            user: user,
             skills: skills,
             activities: activities,
             quests: quests,
             rewards: rewards
-        });
-        console.log("User data saved successfully");
-        updateMiniProfile();
-        return Promise.resolve();
+        };
+        await setDoc(doc(db, 'users', auth.currentUser.uid), dataToSave);
+        console.log("Cloud data saved successfully");
     } catch (error) {
-        console.error("Error saving user data:", error);
-        return Promise.reject(error);
+        console.error("Error saving cloud data:", error);
     }
 }
 
-  function subscribeToUserData(userId) {
-    const userRef = doc(db, 'users', userId);
-    return onSnapshot(userRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        user = {
-          name: data.name,
-          xp: data.xp,
-          level: data.level,
-          achievements: data.achievements,
-          avatar: data.avatar,
-          lastActivityDate: data.lastActivityDate,
-          currentStreak: data.currentStreak,
-          longestStreak: data.longestStreak
-        };
-        skills = data.skills || {};
-        activities = data.activities || [];
-        quests = data.quests || [];
-        rewards = data.rewards || [];
-        updateUserInfoDisplay();
-        loadSection('overview');
-      }
-    });
-  }
-
-  function getDefaultData() {
-    return {
-        user: createDefaultUser(),
-        skills: {
-            'default_skill_1': { id: 'default_skill_1', name: 'Reading', xp: 50, level: 2, icon: 'fa-book' },
-            'default_skill_2': { id: 'default_skill_2', name: 'Fitness', xp: 30, level: 1, icon: 'fa-dumbbell' },
-            'default_skill_3': { id: 'default_skill_3', name: 'Coding', xp: 80, level: 3, icon: 'fa-code' }
-        },
-        activities: [
-            { id: 'default_activity_1', name: 'Read a chapter', xp: 10, skillId: 'default_skill_1', completed: false, lastUpdated: Date.now() - 86400000 },
-            { id: 'default_activity_2', name: '30 min workout', xp: 20, skillId: 'default_skill_2', completed: false, lastUpdated: Date.now() - 172800000 },
-            { id: 'default_activity_3', name: 'Code for an hour', xp: 30, skillId: 'default_skill_3', completed: true, lastUpdated: Date.now() - 259200000 }
-        ],
-        quests: [
-            { 
-                id: 'default_quest_1', 
-                name: 'Reading Challenge', 
-                description: 'Read 5 chapters this week', 
-                activities: ['default_activity_1'], 
-                reward: '50 XP', 
-                completed: false
-            }
-        ],
-        rewards: []
-    };
+function resetToDefaultData() {
+    user = createDefaultUser();
+    skills = {};
+    activities = [];
+    quests = [];
+    rewards = [];
+    updateUserInfoDisplay();
+    updateMiniProfile();
+    loadSection('overview');
 }
 
 function showWelcomeModal() {
@@ -576,31 +542,41 @@ function closeSidebar() {
     }
 }
 
-function isElementVisible(el) {
-    return !!( el.offsetWidth || el.offsetHeight || el.getClientRects().length );
-}
-
 function showSettingsMenu() {
     const currentUser = auth.currentUser;
-    if (!currentUser) {
-        showLoginPrompt();
-        return;
-    }
+    let content;
 
-    let content = `
-        <div class="user-profile-summary">
-            <img src="${user.avatar}" alt="Profile Picture" class="profile-pic">
-            <p class="user-name">${user.name}</p>
-            <p class="user-email">${currentUser.email}</p>
-        </div>
-        <ul class="settings-menu">
-            <li><button id="editProfileBtn" class="settings-option">Edit Profile</button></li>
-            <li><button id="exportDataBtn" class="settings-option">Export Data</button></li>
-            <li><button id="importDataBtn" class="settings-option">Import Data</button></li>
-            <li><button id="debugOptionsBtn" class="settings-option">Debug Options</button></li>
-            <li><button id="signOutBtn" class="settings-option">Sign Out</button></li>
-        </ul>
-    `;
+    if (currentUser) {
+        content = `
+            <div class="user-profile-summary">
+                <img src="${user.avatar}" alt="Profile Picture" class="profile-pic">
+                <p class="user-name">${user.name}</p>
+                <p class="user-email">${currentUser.email}</p>
+            </div>
+            <ul class="settings-menu">
+                <li><button id="editProfileBtn" class="settings-option">Edit Profile</button></li>
+                <li><button id="exportDataBtn" class="settings-option">Export Data</button></li>
+                <li><button id="importDataBtn" class="settings-option">Import Data</button></li>
+                <li><button id="debugOptionsBtn" class="settings-option">Debug Options</button></li>
+                <li><button id="signOutBtn" class="settings-option">Sign Out</button></li>
+            </ul>
+        `;
+    } else {
+        content = `
+            <div class="user-profile-summary">
+                <img src="${user.avatar}" alt="Profile Picture" class="profile-pic">
+                <p class="user-name">${user.name}</p>
+                <p class="user-status">Using Local Data</p>
+            </div>
+            <ul class="settings-menu">
+                <li><button id="editProfileBtn" class="settings-option">Edit Profile</button></li>
+                <li><button id="exportDataBtn" class="settings-option">Export Data</button></li>
+                <li><button id="importDataBtn" class="settings-option">Import Data</button></li>
+                <li><button id="debugOptionsBtn" class="settings-option">Debug Options</button></li>
+                <li><button id="signInBtn" class="settings-option">Sign In</button></li>
+            </ul>
+        `;
+    }
 
     const settingsMenu = createModal('Settings', content);
 
@@ -608,10 +584,6 @@ function showSettingsMenu() {
     document.getElementById('editProfileBtn').addEventListener('click', () => {
         closeModal(settingsMenu);
         showEditProfileForm();
-    });
-    document.getElementById('signOutBtn').addEventListener('click', () => {
-        closeModal(settingsMenu);
-        userSignOut();
     });
     document.getElementById('exportDataBtn').addEventListener('click', () => {
         closeModal(settingsMenu);
@@ -625,8 +597,19 @@ function showSettingsMenu() {
         closeModal(settingsMenu);
         showDebugOptions();
     });
+    
+    if (currentUser) {
+        document.getElementById('signOutBtn').addEventListener('click', () => {
+            closeModal(settingsMenu);
+            userSignOut();
+        });
+    } else {
+        document.getElementById('signInBtn').addEventListener('click', () => {
+            closeModal(settingsMenu);
+            signIn();
+        });
+    }
 }
-
 function exportData() {
     const data = {
         user: user,
@@ -669,11 +652,7 @@ function importData() {
                 quests = parsedData.quests;
                 rewards = parsedData.rewards;
 
-                
-                saveUserData(auth.currentUser.uid);
-               
-
-                // Update the UI
+                saveData();
                 updateUserInfoDisplay();
                 loadSection('overview');
 
@@ -696,6 +675,7 @@ function initializeDashboard() {
         });
     });
 
+    loadData();
     loadSection('overview');
 }
 
@@ -746,10 +726,27 @@ function updateMiniProfile() {
         `;
     } else {
         miniProfileElement.innerHTML = `
-            <span class="mini-profile-signin">Not signed in</span>
+            <span class="mini-profile-signin">Not signed in. Sign in to sync across devices.</span>
         `;
     }
 }
+
+// Update global variables with the current data set
+function updateGlobalVariables(data) {
+    user = data.user || createDefaultUser();
+    skills = data.skills || {};
+    activities = data.activities || [];
+    quests = data.quests || [];
+    rewards = data.rewards || [];
+}
+
+// Update UI components after data load
+function updateUIComponents() {
+    updateUserInfoDisplay();
+    updateMiniProfile();
+    loadSection('overview');
+}
+
 
 function loadHowToUseSection() {
     const mainContent = document.getElementById('mainContent');
@@ -833,170 +830,133 @@ function loadOverviewSection() {
     const mainContent = document.getElementById('mainContent');
     if (!mainContent) return;
 
-    let currentUser, currentSkills, currentActivities, currentQuests, currentRewards;
-
-    if (auth.currentUser) {
-        currentUser = user;
-        currentSkills = skills;
-        currentActivities = activities;
-        currentQuests = quests;
-        currentRewards = rewards;
-    } else {
-        const defaultData = getDefaultData();
-        currentUser = defaultData.user;
-        currentSkills = defaultData.skills;
-        currentActivities = defaultData.activities;
-        currentQuests = defaultData.quests;
-        currentRewards = defaultData.rewards;
-    }
-
-    const nextLevelXP = xpForNextLevel(currentUser.level);
+    const nextLevelXP = xpForNextLevel(user.level);
     const currentLevelXP = nextLevelXP - XP_PER_LEVEL;
-    const xpProgress = ((currentUser.xp - currentLevelXP) / XP_PER_LEVEL) * 100;
-    const masteredSkillsCount = Object.values(currentSkills).filter(s => s.level >= MAX_SKILL_LEVEL).length;
-    const totalSkills = Object.keys(currentSkills).length;
-    const completedQuests = currentQuests.filter(q => q.completed).length;
-    const totalQuests = currentQuests.length;
-    const recentActivities = currentActivities
+    const xpProgress = ((user.xp - currentLevelXP) / XP_PER_LEVEL) * 100;
+    const masteredSkillsCount = Object.values(skills).filter(s => s.level >= MAX_SKILL_LEVEL).length;
+    const totalSkills = Object.keys(skills).length;
+    const completedQuests = quests.filter(q => q.completed).length;
+    const totalQuests = quests.length;
+    const recentActivities = activities
         .sort((a, b) => b.lastUpdated - a.lastUpdated)
         .slice(0, 5);
 
-    const topSkills = Object.entries(currentSkills)
+    const topSkills = Object.entries(skills)
         .sort((a, b) => b[1].level - a[1].level)
         .slice(0, 3);
     
-    const activeQuests = currentQuests.filter(q => !q.completed);
+    const activeQuests = quests.filter(q => !q.completed);
 
-    const topSkillsLimit = 3;
-    const recentActivitiesLimit = 5;
-    const activeQuestsLimit = 3;
-
-    const topSkillsHtml = topSkills.map(([id, data]) => `
-    <div class="skill-entry">
-        <div class="skill-icon"><i class="fas ${data.icon}"></i></div>
-        <div class="skill-details">
-            <div class="skill-name">${data.name}</div>
-            <div class="skill-level">Level ${data.level}</div>
-            <div class="skill-bar-wrapper">
-                <div class="skill-bar" style="width: ${(data.level / MAX_SKILL_LEVEL) * 100}%"></div>
-            </div>
-            <div class="skill-xp">${data.xp} / ${XP_PER_LEVEL} XP</div>
-        </div>
-    </div>
-`).join('');
-
-
-mainContent.innerHTML = `
-<div class="dashboard">
-    <div class="hero-section">
-        <div class="hero-content">
-            <div class="user-info">
-                <div class="avatar-frame">
-                    <img src="${currentUser.avatar || '../images/default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
-                </div>
-                <div class="user-details">
-                    <h2 id="userName">${currentUser.name}</h2>
-                    <div class="user-level">
-                        <span id="userLevel">Level ${currentUser.level}</span>
-                        <i class="fas fa-star"></i>
+    mainContent.innerHTML = `
+    <div class="dashboard">
+        <div class="hero-section">
+            <div class="hero-content">
+                <div class="user-info">
+                    <div class="avatar-frame">
+                        <img src="${user.avatar || '../images/default-avatar.webp'}" alt="User Avatar" class="user-avatar" id="userAvatar">
                     </div>
-                    <div class="xp-bar">
-                        <div class="xp-fill" id="xpFill" style="width: ${xpProgress}%"></div>
-                    </div>
-                    <p id="xpInfo">${currentUser.xp - currentLevelXP} / ${XP_PER_LEVEL} XP to next level</p>
-                    <div id="streakInfo" class="streak-info">
-                        <span class="current-streak"><i class="fas fa-fire"></i> Current: ${currentUser.currentStreak} days</span>
-                        <span class="longest-streak"><i class="fas fa-trophy"></i> Longest: ${currentUser.longestStreak} days</span>
+                    <div class="user-details">
+                        <h2 id="userName">${user.name}</h2>
+                        <div class="user-level">
+                            <span id="userLevel">Level ${user.level}</span>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="xp-bar">
+                            <div class="xp-fill" id="xpFill" style="width: ${xpProgress}%"></div>
+                        </div>
+                        <p id="xpInfo">${user.xp - currentLevelXP} / ${XP_PER_LEVEL} XP to next level</p>
+                        <div id="streakInfo" class="streak-info">
+                            <span class="current-streak"><i class="fas fa-fire"></i> Current: ${user.currentStreak} days</span>
+                            <span class="longest-streak"><i class="fas fa-trophy"></i> Longest: ${user.longestStreak} days</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-            <div class="stats-overview">
-                <div class="stat-card">
-                    <i class="fas fa-book-open"></i>
-                    <h3>Skills Mastered</h3>
-                    <p>${masteredSkillsCount} / ${totalSkills}</p>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${totalSkills > 0 ? (masteredSkillsCount / totalSkills) * 100 : 0}%"></div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-map-marked-alt"></i>
-                    <h3>Quests Completed</h3>
-                    <p>${completedQuests} / ${totalQuests}</p>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${totalQuests > 0 ? (completedQuests / totalQuests) * 100 : 0}%"></div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-trophy"></i>
-                    <h3>Achievements</h3>
-                    <p>${user.achievements.length} / ${ACHIEVEMENTS.length}</p>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${(user.achievements.length / ACHIEVEMENTS.length) * 100}%"></div>
-                    </div>
+        <div class="stats-overview">
+            <div class="stat-card">
+                <i class="fas fa-book-open"></i>
+                <h3>Skills Mastered</h3>
+                <p>${masteredSkillsCount} / ${totalSkills}</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${totalSkills > 0 ? (masteredSkillsCount / totalSkills) * 100 : 0}%"></div>
                 </div>
             </div>
+            <div class="stat-card">
+                <i class="fas fa-map-marked-alt"></i>
+                <h3>Quests Completed</h3>
+                <p>${completedQuests} / ${totalQuests}</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${totalQuests > 0 ? (completedQuests / totalQuests) * 100 : 0}%"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-trophy"></i>
+                <h3>Achievements</h3>
+                <p>${user.achievements.length} / ${ACHIEVEMENTS.length}</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${(user.achievements.length / ACHIEVEMENTS.length) * 100}%"></div>
+                </div>
+            </div>
+        </div>
 
-
-            <div class="dashboard-grid">
-                <div class="dashboard-card top-skills">
-                    <h3>Top Skills</h3>
-                    <div class="card-content">
-                        ${topSkills.map(([id, data]) => `
-                            <div class="skill-entry">
-                                <div class="skill-icon"><i class="fas ${data.icon}"></i></div>
-                                <div class="skill-details">
-                                    <div class="skill-name">${data.name}</div>
-                                    <div class="skill-level">Level ${data.level}</div>
-                                    <div class="skill-bar-wrapper">
-                                        <div class="skill-bar" style="width: ${(data.level / MAX_SKILL_LEVEL) * 100}%"></div>
-                                    </div>
-                                    <div class="skill-xp">${data.xp} / ${XP_PER_LEVEL} XP</div>
+        <div class="dashboard-grid">
+            <div class="dashboard-card top-skills">
+                <h3>Top Skills</h3>
+                <div class="card-content">
+                    ${topSkills.map(([id, data]) => `
+                        <div class="skill-entry">
+                            <div class="skill-icon"><i class="fas ${data.icon}"></i></div>
+                            <div class="skill-details">
+                                <div class="skill-name">${data.name}</div>
+                                <div class="skill-level">Level ${data.level}</div>
+                                <div class="skill-bar-wrapper">
+                                    <div class="skill-bar" style="width: ${(data.level / MAX_SKILL_LEVEL) * 100}%"></div>
                                 </div>
+                                <div class="skill-xp">${data.xp} / ${XP_PER_LEVEL} XP</div>
                             </div>
-                        `).join('')}
-                    </div>
-                    ${Object.keys(skills).length > 3 ? '<a href="#" class="see-more">View all skills</a>' : ''}
+                        </div>
+                    `).join('')}
                 </div>
+                ${Object.keys(skills).length > 3 ? '<a href="#" class="see-more">View all skills</a>' : ''}
+            </div>
 
-                <div class="dashboard-card activity-log">
-                    <h3>Activity Log</h3>
-                    <div class="card-content">
-                        ${recentActivities.length > 0 ? `
-                            <table class="activity-table">
-                                <thead>
+            <div class="dashboard-card activity-log">
+                <h3>Activity Log</h3>
+                <div class="card-content">
+                    ${recentActivities.length > 0 ? `
+                        <table class="activity-table">
+                            <thead>
+                                <tr>
+                                    <th>Activity</th>
+                                    <th>Skill</th>
+                                    <th>XP</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${recentActivities.map(activity => `
                                     <tr>
-                                        <th>Activity</th>
-                                        <th>Skill</th>
-                                        <th>XP</th>
-                                        <th>Status</th>
+                                        <td>${activity.name}</td>
+                                        <td>${skills[activity.skillId]?.name || 'Unknown Skill'}</td>
+                                        <td>${activity.xp} XP</td>
+                                        <td>${activity.completed ? '<span class="status completed">Completed</span>' : '<span class="status todo">To-Do</span>'}</td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    ${recentActivities.map(activity => `
-                                        <tr>
-                                            <td>${activity.name}</td>
-                                            <td>${skills[activity.skillId]?.name || 'Unknown Skill'}</td>
-                                            <td>${activity.xp} XP</td>
-                                            <td>${activity.completed ? '<span class="status completed">Completed</span>' : '<span class="status todo">To-Do</span>'}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        ` : '<p class="no-activities">No recent activities</p>'}
-                    </div>
-                    ${activities.length > 5 ? '<a href="#" class="see-more">View all activities</a>' : ''}
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    ` : '<p class="no-activities">No recent activities</p>'}
                 </div>
+                ${activities.length > 5 ? '<a href="#" class="see-more">View all activities</a>' : ''}
+            </div>
 
-                <div class="dashboard-card active-quests">
+            <div class="dashboard-card active-quests">
                 <h3>Active Quests</h3>
                 <div class="card-content">
                     ${activeQuests.length > 0 ? activeQuests.slice(0, 3).map(quest => {
                         const completedActivities = quest.activities.filter(actId => 
-                            currentActivities.find(act => act.id === actId && act.completed)
+                            activities.find(act => act.id === actId && act.completed)
                         ).length;
                         const totalActivities = quest.activities.length;
                         const progressPercentage = (completedActivities / totalActivities) * 100;
@@ -1019,14 +979,14 @@ mainContent.innerHTML = `
                 ${activeQuests.length > 3 ? '<a href="#" class="see-more">View all quests</a>' : ''}
             </div>
         </div>
-    </div>
+      </div>
     `;
 
-const seeMoreLinks = mainContent.querySelectorAll('.see-more');
-seeMoreLinks[0]?.addEventListener('click', () => loadSection('skills'));
-seeMoreLinks[1]?.addEventListener('click', () => loadSection('activities'));
-seeMoreLinks[2]?.addEventListener('click', () => loadSection('quests'));
-}
+    const seeMoreLinks = mainContent.querySelectorAll('.see-more');
+    seeMoreLinks[0]?.addEventListener('click', () => loadSection('skills'));
+    seeMoreLinks[1]?.addEventListener('click', () => loadSection('activities'));
+    seeMoreLinks[2]?.addEventListener('click', () => loadSection('quests'));
+} 
 
 function calculateLevel(xp) {
     return Math.floor(xp / XP_PER_LEVEL) + 1;
@@ -1034,11 +994,6 @@ function calculateLevel(xp) {
 
 function xpForNextLevel(level) {
     return level * XP_PER_LEVEL;
-}
-
-function openModal(modal) {
-    modal.style.display = 'block';
-    document.body.classList.add('modal-open');
 }
 
 
@@ -1110,11 +1065,6 @@ function updateSkillsList() {
 }
 
 function showAddSkillForm() {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     const modal = createModal('Add New Skill', `
         <form id="addSkillForm">
             <div class="form-group">
@@ -1150,19 +1100,13 @@ function showAddSkillForm() {
         skills[skillId] = { id: skillId, name: skillName, xp: 0, level: 1, icon: icon };
         
         saveData();
-
-        closeModal(modal);
         updateSkillsList();
-        addXP(10); // Award XP for creating a new skill
+        addXP(10);
+        checkAchievements(); // Check achievements after adding a skill  
     });
 }
 
 function showEditSkillForm(skillId) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     const skill = skills[skillId];
     if (!skill) return;
 
@@ -1208,11 +1152,6 @@ function showEditSkillForm(skillId) {
 }
 
 function deleteSkill(skillId) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     if (confirm('Are you sure you want to delete this skill? This action cannot be undone.')) {
         delete skills[skillId];
         activities = activities.filter(a => a.skillId !== skillId);
@@ -1308,11 +1247,7 @@ function updateActivitiesList() {
 }
 
 function showAddActivityForm() {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
+
     const modal = createModal('Add New Activity', `
         <form id="addActivityForm">
             <div class="form-group">
@@ -1369,7 +1304,6 @@ function showAddActivityForm() {
         activities.push(newActivity);
         
         saveData();
-
         closeModal(modal);
         updateActivitiesList();
         addXP(5); // Award XP for creating a new activity
@@ -1377,10 +1311,6 @@ function showAddActivityForm() {
 }
 
 function showEditActivityForm(activityId) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
     
     const activity = activities.find(a => a.id === activityId);
     if (!activity) return;
@@ -1447,11 +1377,6 @@ function showEditActivityForm(activityId) {
 }
 
 function deleteActivity(activityId) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     console.log('Attempting to delete activity:', activityId);
     if (confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
         const initialCount = activities.length;
@@ -1482,11 +1407,7 @@ function deleteActivity(activityId) {
 }
 
 function completeActivity(activityId) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
+
     const activity = activities.find(a => a.id === activityId);
     if (!activity) return;
 
@@ -1527,14 +1448,10 @@ function completeActivity(activityId) {
     updateStreak();
     updateActivitiesList();
     updateUserInfoDisplay();
+    checkAchievements(); // Check achievements after completing an activity
 }
 
 function updateStreak() {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     const today = new Date().toDateString();
     if (user.lastActivityDate === today) {
         return; // Already completed an activity today
@@ -1560,6 +1477,7 @@ function updateStreak() {
         alert(`Great job! You've maintained a ${user.currentStreak}-day streak! Bonus 20 XP awarded!`);
     }
     saveData();
+
 }
 
 function checkQuestsCompletion() {
@@ -1651,11 +1569,6 @@ function updateQuestsList() {
 }
 
 function claimQuestReward(questId) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     const quest = quests.find(q => q.id === questId);
     if (!quest || quest.completed) return;
 
@@ -1683,11 +1596,6 @@ function claimQuestReward(questId) {
 }
 
 function showAddQuestForm() {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     const modal = createModal('Add New Quest', `
         <form id="addQuestForm">
             <div class="form-group">
@@ -1736,7 +1644,6 @@ function showAddQuestForm() {
         quests.push(newQuest);
         
         saveData();
-
         closeModal(modal);
         updateQuestsList();
         addXP(15); // Award XP for creating a new quest
@@ -1744,11 +1651,6 @@ function showAddQuestForm() {
 }
 
 function showEditQuestForm(questId) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     const quest = quests.find(q => q.id === questId);
     if (!quest) return;
 
@@ -1807,11 +1709,6 @@ function showEditQuestForm(questId) {
 }
 
 function deleteQuest(questId) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     if (confirm('Are you sure you want to delete this quest? This action cannot be undone.')) {
         quests = quests.filter(q => q.id !== questId);
         saveData();
@@ -1839,6 +1736,7 @@ function completeQuest(questId) {
     saveData();
     updateQuestsList();
     updateUserInfoDisplay();
+    checkAchievements(); // Check achievements after completing a quest
 }
 
 function loadRewardsSection() {
@@ -1956,11 +1854,6 @@ function updateMilestonesList() {
 }
 
 function showAddMilestoneForm() {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     const modal = createModal('Add New Milestone', `
         <form id="addMilestoneForm">
             <div class="form-group">
@@ -2005,10 +1898,6 @@ function showAddMilestoneForm() {
 }
 
 function claimReward(rewardId) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
     const reward = rewards.find(r => r.id === rewardId);
     if (!reward) return;
 
@@ -2026,11 +1915,6 @@ function claimReward(rewardId) {
 }
 
 function addXP(amount) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
     if (!user) {
         user = createDefaultUser();
     }
@@ -2046,20 +1930,18 @@ function addXP(amount) {
     updateUserInfoDisplay();
 }
 
-function checkLevelUp() {
-    while (user.level < LEVEL_THRESHOLDS.length && user.xp >= LEVEL_THRESHOLDS[user.level]) {
-        user.level++;
-        alert(`Congratulations! You've reached level ${user.level}!`);
-    }
-}
-
 function checkAchievements() {
+    let achievementsUnlocked = false;
     ACHIEVEMENTS.forEach(achievement => {
         if (!user.achievements.includes(achievement.id) && achievement.check()) {
             user.achievements.push(achievement.id);
             alert(`Achievement Unlocked: ${achievement.name}\n${achievement.description}`);
+            achievementsUnlocked = true;
         }
     });
+    if (achievementsUnlocked) {
+        saveData();
+    }
 }
 
 function updateUserInfoDisplay() {
@@ -2134,11 +2016,7 @@ function closeModal(modal) {
 }
 
 function showEditProfileForm() {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Action not performed.");
-        return;
-    }
-    
+
     const modal = createModal('Edit Profile', `
         <form id="editProfileForm">
             <div class="form-group">
@@ -2165,14 +2043,11 @@ function showEditProfileForm() {
         updateMiniProfile();
         closeModal(modal);
     });
+    saveData();
 }
 
 function clearLocalStorage() {
-    localStorage.removeItem('localUser');
-    localStorage.removeItem('localSkills');
-    localStorage.removeItem('localActivities');
-    localStorage.removeItem('localQuests');
-    localStorage.removeItem('localRewards');
+    localStorage.removeItem('habitAdventureData');
     console.log('Local storage cleared');
 }
 
@@ -2199,16 +2074,9 @@ function showDebugOptions() {
 }
 
 async function purgeData(dataType) {
-    if (!auth.currentUser) {
-        console.log("User not logged in. Cannot purge data.");
-        return;
-    }
-
     if (!confirm(`Are you sure you want to purge ${dataType}? This action cannot be undone.`)) {
         return;
     }
-
-    const currentUser = auth.currentUser;
 
     switch(dataType) {
         case 'all':
@@ -2216,16 +2084,7 @@ async function purgeData(dataType) {
             activities = [];
             quests = [];
             rewards = [];
-            user = {
-                name: "Adventurer",
-                xp: 0,
-                level: 1,
-                achievements: [],
-                avatar: '../images/default-avatar.webp',
-                lastActivityDate: null,
-                currentStreak: 0,
-                longestStreak: 0
-            };
+            user = createDefaultUser();
             break;
         case 'skills':
             skills = {};
@@ -2241,14 +2100,11 @@ async function purgeData(dataType) {
             break;
     }
 
-    // Update Firebase if user is logged in
-    if (currentUser) {
-        try {
-            await saveData();
-            console.log(`${dataType} data purged and synced with Firebase`);
-        } catch (error) {
-            console.error("Error syncing purged data with Firebase:", error);
-        }
+    try {
+        await saveData();
+        console.log(`${dataType} data purged and synced`);
+    } catch (error) {
+        console.error("Error syncing purged data:", error);
     }
 
     alert(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} have been purged.`);
