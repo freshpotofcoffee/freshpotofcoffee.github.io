@@ -172,9 +172,9 @@ function showLoginOverlay() {
             text-align: center;
         `;
         loginPrompt.innerHTML = `
-            <h2>Login Required</h2>
-            <p>You need to be logged in to use this app.</p><br />
-            <button id="loginBtn" class="action-btn">Log In</button>
+            <h2>Account Required</h2>
+            <p>You need an account to begin your Habit Adventure.</p><br />
+            <button id="loginBtn" class="action-btn">Register / Log In</button>
         `;
 
         overlay.appendChild(loginPrompt);
