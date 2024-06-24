@@ -64,10 +64,20 @@ document.addEventListener("DOMContentLoaded", function() {
         if (currentUser) {
             console.log("User is signed in");
             loadUserData(currentUser.uid);
+            const loginOverlay = document.getElementById('loginOverlay');
+            if (loginOverlay) {
+                loginOverlay.remove();
+            }
         } else {
             console.log("No user signed in");
-            // Redirect to login page or show login modal
-            showLoginPrompt();
+            user = createDefaultUser();
+            skills = {};
+            activities = [];
+            quests = [];
+            rewards = [];
+            updateUserInfoDisplay();
+            updateMiniProfile();
+            showLoginOverlay();
         }
     });
 
@@ -137,6 +147,41 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
+function showLoginOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'loginOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+
+    const loginPrompt = document.createElement('div');
+    loginPrompt.style.cssText = `
+        background-color: var(--background-color);
+        padding: 2rem;
+        border-radius: 10px;
+        text-align: center;
+    `;
+    loginPrompt.innerHTML = `
+        <h2>Login Required</h2>
+        <p>You need to be logged in to use this app.</p>
+        <button id="loginBtn" class="action-btn">Log In</button>
+    `;
+
+    overlay.appendChild(loginPrompt);
+    document.body.appendChild(overlay);
+
+    document.getElementById('loginBtn').addEventListener('click', signIn);
+}
+
 function showLoginPrompt() {
     const loginPrompt = createModal('Login Required', `
         <p>You need to be logged in to use this app.</p>
@@ -184,16 +229,14 @@ function signIn() {
 function userSignOut() {
     signOut(auth).then(() => {
         console.log("User signed out");
-        // Clear all data
         user = createDefaultUser();
         skills = {};
         activities = [];
         quests = [];
         rewards = [];
-
         updateUserInfoDisplay();
         updateMiniProfile();
-        loadSection('overview');
+        showLoginOverlay();
     }).catch((error) => {
         console.error("Error during sign out:", error);
     });
