@@ -56,7 +56,6 @@ function generateUniqueId() {
 document.getElementById('helpBtn').addEventListener('click', startWalkthrough);
 
 document.addEventListener("DOMContentLoaded", function() {
-    loadFromLocalStorage();
     initializeDashboard();
     updateUserInfoDisplay();
 
@@ -79,6 +78,7 @@ document.addEventListener("DOMContentLoaded", function() {
             updateUserInfoDisplay();
             updateMiniProfile();
             loadSection('overview');
+            showLoginOverlay();
         }
     });
 
@@ -652,12 +652,9 @@ function importData() {
                 quests = parsedData.quests;
                 rewards = parsedData.rewards;
 
-                // Save the imported data
-                if (auth.currentUser) {
-                    saveUserData(auth.currentUser.uid);
-                } else {
-                    saveToLocalStorage();
-                }
+                
+                saveUserData(auth.currentUser.uid);
+               
 
                 // Update the UI
                 updateUserInfoDisplay();
@@ -1092,6 +1089,11 @@ function updateSkillsList() {
 }
 
 function showAddSkillForm() {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const modal = createModal('Add New Skill', `
         <form id="addSkillForm">
             <div class="form-group">
@@ -1135,6 +1137,11 @@ function showAddSkillForm() {
 }
 
 function showEditSkillForm(skillId) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const skill = skills[skillId];
     if (!skill) return;
 
@@ -1180,6 +1187,11 @@ function showEditSkillForm(skillId) {
 }
 
 function deleteSkill(skillId) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     if (confirm('Are you sure you want to delete this skill? This action cannot be undone.')) {
         delete skills[skillId];
         activities = activities.filter(a => a.skillId !== skillId);
@@ -1275,6 +1287,11 @@ function updateActivitiesList() {
 }
 
 function showAddActivityForm() {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const modal = createModal('Add New Activity', `
         <form id="addActivityForm">
             <div class="form-group">
@@ -1339,6 +1356,11 @@ function showAddActivityForm() {
 }
 
 function showEditActivityForm(activityId) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const activity = activities.find(a => a.id === activityId);
     if (!activity) return;
 
@@ -1404,6 +1426,11 @@ function showEditActivityForm(activityId) {
 }
 
 function deleteActivity(activityId) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     console.log('Attempting to delete activity:', activityId);
     if (confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
         const initialCount = activities.length;
@@ -1434,6 +1461,11 @@ function deleteActivity(activityId) {
 }
 
 function completeActivity(activityId) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const activity = activities.find(a => a.id === activityId);
     if (!activity) return;
 
@@ -1477,6 +1509,11 @@ function completeActivity(activityId) {
 }
 
 function updateStreak() {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const today = new Date().toDateString();
     if (user.lastActivityDate === today) {
         return; // Already completed an activity today
@@ -1593,6 +1630,11 @@ function updateQuestsList() {
 }
 
 function claimQuestReward(questId) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const quest = quests.find(q => q.id === questId);
     if (!quest || quest.completed) return;
 
@@ -1620,6 +1662,11 @@ function claimQuestReward(questId) {
 }
 
 function showAddQuestForm() {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const modal = createModal('Add New Quest', `
         <form id="addQuestForm">
             <div class="form-group">
@@ -1676,6 +1723,11 @@ function showAddQuestForm() {
 }
 
 function showEditQuestForm(questId) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const quest = quests.find(q => q.id === questId);
     if (!quest) return;
 
@@ -1734,6 +1786,11 @@ function showEditQuestForm(questId) {
 }
 
 function deleteQuest(questId) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     if (confirm('Are you sure you want to delete this quest? This action cannot be undone.')) {
         quests = quests.filter(q => q.id !== questId);
         saveData();
@@ -1878,6 +1935,11 @@ function updateMilestonesList() {
 }
 
 function showAddMilestoneForm() {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const modal = createModal('Add New Milestone', `
         <form id="addMilestoneForm">
             <div class="form-group">
@@ -1922,6 +1984,10 @@ function showAddMilestoneForm() {
 }
 
 function claimReward(rewardId) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
     const reward = rewards.find(r => r.id === rewardId);
     if (!reward) return;
 
@@ -1939,6 +2005,11 @@ function claimReward(rewardId) {
 }
 
 function addXP(amount) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     if (!user) {
         user = createDefaultUser();
     }
@@ -2075,6 +2146,11 @@ function loadFromLocalStorage() {
 }
 
 function showEditProfileForm() {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Action not performed.");
+        return;
+    }
+    
     const modal = createModal('Edit Profile', `
         <form id="editProfileForm">
             <div class="form-group">
@@ -2123,6 +2199,11 @@ function showDebugOptions() {
 }
 
 async function purgeData(dataType) {
+    if (!auth.currentUser) {
+        console.log("User not logged in. Cannot purge data.");
+        return;
+    }
+
     if (!confirm(`Are you sure you want to purge ${dataType}? This action cannot be undone.`)) {
         return;
     }
