@@ -141,7 +141,7 @@ function initializeUI() {
     if (versionInfo) {
         versionInfo.innerHTML = `
             <span class="version-label">Version</span>
-            <span class="version-number">0.56</span>
+            <span class="version-number">0.5.7</span>
         `;
     }
 

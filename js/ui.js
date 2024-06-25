@@ -88,13 +88,13 @@ function updateMiniProfile() {
         miniProfileElement.innerHTML = `
             <img src="${user.avatar}" alt="Profile Picture" class="mini-profile-pic">
             <span class="mini-profile-name">${user.name}</span>
-            <button id="miniSignOutBtn" class="mini-sign-out-btn">Sign Out</button>
+            <button id="miniSignOutBtn" class="action-btn delete-btn">Sign Out</button>
         `;
         document.getElementById('miniSignOutBtn').addEventListener('click', userSignOut);
     } else {
         miniProfileElement.innerHTML = `
             <span class="mini-profile-signin">Not signed in</span>
-            <button id="miniSignInBtn" class="mini-sign-in-btn">Sign In</button>
+            <button id="miniSignInBtn" class="action-btn complete-btn">Sign In</button>
         `;
         document.getElementById('miniSignInBtn').addEventListener('click', signIn);
     }
@@ -120,7 +120,7 @@ function showSettingsMenu() {
                     ${document.body.classList.contains('dark-mode') ? 'Disable' : 'Enable'} Dark Mode
                 </button></li>
             </ul>
-            <button id="signOutBtn" class="action-btn sign-out-btn">Sign Out</button>
+            <button id="signOutBtn" class="primary-action-btn sign-out-btn">Sign Out</button>
         `;
     } else {
         content = `
@@ -138,7 +138,7 @@ function showSettingsMenu() {
                     ${document.body.classList.contains('dark-mode') ? 'Disable' : 'Enable'} Dark Mode
                 </button></li>
             </ul>
-            <button id="signInBtn" class="action-btn sign-in-btn">Sign In</button>
+            <button id="signInBtn" class="primary-action-btn sign-in-btn">Sign In</button>
         `;
     }
 
@@ -268,7 +268,7 @@ function showEditProfileForm() {
                 <label for="editUserAvatar">Avatar URL:</label>
                 <input type="text" id="editUserAvatar" value="${user.avatar}">
             </div>
-            <button type="submit" class="action-btn">Update Profile</button>
+            <button type="submit" class="primary-action-btn">Update Profile</button>
         </form>
     `);
 
@@ -376,7 +376,7 @@ export function showNotificationHistory() {
                 </div>
             `).reverse().join('') : '<p class="no-notifications">No notifications yet.</p>'}
         </div>
-        <button id="clearHistoryBtn" class="action-btn">Clear History</button>
+        <button id="clearHistoryBtn" class="primary-action-btn">Clear History</button>
     `;
 
     const modal = createModal('Notification History', modalContent);

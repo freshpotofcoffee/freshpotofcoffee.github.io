@@ -4,6 +4,38 @@ import { user, skills, activities, quests } from './main.js';
 import { XP_PER_LEVEL, MAX_SKILL_LEVEL, xpForNextLevel } from './utils.js';
 import { loadSection } from './navigation.js';
 import { ACHIEVEMENTS } from './rewards.js';
+import { isQuestCompleted } from './quests.js';
+
+
+export function updateDashboard() {
+    if (document.getElementById('mainContent').querySelector('.dashboard')) {
+        loadOverviewSection();
+    }
+}
+
+function getActivityStatus(activity) {
+    if (activity.repeatable) {
+        return activity.completionCount > 0 ? 'recurring' : 'active';
+    } else {
+        return activity.status;
+    }
+}
+
+function getActivityStatusLabel(activity) {
+    if (activity.repeatable) {
+        return activity.completionCount > 0 ? `Recurring (${activity.completionCount}x)` : 'Active';
+    } else {
+        switch (activity.status) {
+            case 'completed':
+                return 'Completed';
+            case 'in-progress':
+            case 'active':
+                return 'Active';
+            default:
+                return 'To-Do';
+        }
+    }
+}
 
 export function loadOverviewSection() {
     const mainContent = document.getElementById('mainContent');
@@ -24,7 +56,8 @@ export function loadOverviewSection() {
         .sort((a, b) => b[1].level - a[1].level)
         .slice(0, 3);
     
-    const activeQuests = quests.filter(q => !q.completed);
+        const activeQuests = quests.filter(q => !isQuestCompleted(q));
+
 
     mainContent.innerHTML = `
         <div class="dashboard">
@@ -101,56 +134,56 @@ export function loadOverviewSection() {
                     <a href="#" class="see-more" data-section="skills">View all skills</a>
                 </div>
 
-                <div class="dashboard-card activity-log">
-                    <h3>Recent Activities</h3>
-                    <div class="card-content">
-                        ${recentActivities.length > 0 ? recentActivities.map(activity => `
-                            <div class="activity-entry">
-                                <div class="activity-icon"><i class="fas ${skills[activity.skillId]?.icon || 'fa-question'}"></i></div>
-                                <div class="activity-details">
-                                    <div class="activity-name">${activity.name}</div>
-                                    <div class="activity-info">
-                                        <span class="activity-skill">${skills[activity.skillId]?.name || 'Unknown Skill'}</span>
-                                        <span class="activity-xp">${activity.xp} XP</span>
-                                    </div>
-                                    <div class="activity-status ${activity.completed ? 'completed' : 'todo'}">
-                                        ${activity.completed ? 'Completed' : 'To-Do'}
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('') : '<p class="no-activities">No recent activities. Start by adding a new activity!</p>'}
+<div class="dashboard-card activity-log">
+    <h3>Recent Activities</h3>
+    <div class="card-content">
+        ${recentActivities.length > 0 ? recentActivities.map(activity => `
+            <div class="activity-entry">
+                <div class="activity-icon"><i class="fas ${skills[activity.skillId]?.icon || 'fa-question'}"></i></div>
+                <div class="activity-details">
+                    <div class="activity-name">${activity.name}</div>
+                    <div class="activity-info">
+                        <span class="activity-skill">${skills[activity.skillId]?.name || 'Unknown Skill'}</span>
+                        <span class="activity-xp">${activity.xp} XP</span>
                     </div>
-                    <a href="#" class="see-more" data-section="activities">View all activities</a>
+                    <div class="activity-status ${getActivityStatus(activity)}">
+                        ${getActivityStatusLabel(activity)}
+                    </div>
                 </div>
+            </div>
+        `).join('') : '<p class="no-activities">No recent activities. Start by adding a new activity!</p>'}
+    </div>
+    <a href="#" class="see-more" data-section="activities">View all activities</a>
+</div>
 
-                <div class="dashboard-card active-quests">
-                    <h3>Active Quests</h3>
-                    <div class="card-content">
-                        ${activeQuests.length > 0 ? activeQuests.map(quest => {
-                            const completedActivities = quest.activities.filter(actId => 
-                                activities.find(act => act.id === actId && act.completed)
-                            ).length;
-                            const totalActivities = quest.activities.length;
-                            const progressPercentage = (completedActivities / totalActivities) * 100;
-                            
-                            return `
-                                <div class="quest-entry">
-                                    <div class="quest-name">${quest.name}</div>
-                                    <div class="quest-description">${quest.description}</div>
-                                    <div class="quest-progress">
-                                        <span>${completedActivities}/${totalActivities}</span>
-                                        <div class="quest-progress-bar">
-                                            <div class="quest-progress-fill" style="width: ${progressPercentage}%"></div>
-                                        </div>
-                                        <span>${progressPercentage.toFixed(0)}%</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<p class="no-quests">No active quests. Start a new quest to challenge yourself!</p>'}
+<div class="dashboard-card active-quests">
+    <h3>Active Quests</h3>
+    <div class="card-content">
+        ${activeQuests.length > 0 ? activeQuests.map(quest => {
+            const completedActivities = quest.activities.filter(actId => {
+                const activity = activities.find(a => a.id === actId);
+                return activity && (activity.status === 'completed' || (activity.repeatable && activity.completionCount > 0));
+            }).length;
+            const totalActivities = quest.activities.length;
+            const progressPercentage = (completedActivities / totalActivities) * 100;
+            
+            return `
+                <div class="quest-entry">
+                    <div class="quest-name">${quest.name}</div>
+                    <div class="quest-description">${quest.description}</div>
+                    <div class="quest-progress">
+                        <span>${completedActivities}/${totalActivities}</span>
+                        <div class="quest-progress-bar">
+                            <div class="quest-progress-fill" style="width: ${progressPercentage}%"></div>
+                        </div>
+                        <span>${progressPercentage.toFixed(0)}%</span>
                     </div>
-                    <a href="#" class="see-more" data-section="quests">View all quests</a>
-                </div>            </div>
-        </div>
+                </div>
+            `;
+        }).join('') : '<p class="no-quests">No active quests. Start a new quest to challenge yourself!</p>'}
+    </div>
+    <a href="#" class="see-more" data-section="quests">View all quests</a>
+</div>
     `;
 
     const seeMoreLinks = mainContent.querySelectorAll('.see-more');

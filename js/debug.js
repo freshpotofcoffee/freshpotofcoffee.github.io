@@ -12,12 +12,11 @@ function showDebugOptions() {
     const debugModal = createModal('Debug Options', `
         <div class="debug-options">
             <h3>Purge Data</h3>
-            <button id="purgeAllBtn" class="action-btn">Purge All Data</button>
-            <button id="purgeSkillsBtn" class="action-btn">Purge Skills</button>
-            <button id="purgeActivitiesBtn" class="action-btn">Purge Activities</button>
-            <button id="purgeQuestsBtn" class="action-btn">Purge Quests</button>
-            <button id="purgeRewardsBtn" class="action-btn">Purge Rewards</button>
-            <button id="clearLocalStorageBtn" class="action-btn">Clear Local Storage</button>
+            <button id="purgeAllBtn" class="primary-action-btn">Purge All Data</button>
+            <button id="purgeSkillsBtn" class="primary-action-btn">Purge Skills</button>
+            <button id="purgeActivitiesBtn" class="primary-action-btn">Purge Activities</button>
+            <button id="purgeQuestsBtn" class="primary-action-btn">Purge Quests</button>
+            <button id="purgeRewardsBtn" class="primary-action-btn">Purge Rewards</button>
         </div>
     `);
 
@@ -26,7 +25,6 @@ function showDebugOptions() {
     document.getElementById('purgeActivitiesBtn').addEventListener('click', () => purgeData('activities'));
     document.getElementById('purgeQuestsBtn').addEventListener('click', () => purgeData('quests'));
     document.getElementById('purgeRewardsBtn').addEventListener('click', () => purgeData('rewards'));
-    document.getElementById('clearLocalStorageBtn').addEventListener('click', clearLocalStorage);
 }
 
 async function purgeData(dataType) {
@@ -76,10 +74,4 @@ async function purgeData(dataType) {
     }
 }
 
-function clearLocalStorage() {
-    localStorage.removeItem('habitAdventureData');
-    console.log('Local storage cleared');
-    showNotification('Local storage has been cleared.');
-}
-
-export { showDebugOptions, purgeData, clearLocalStorage };
+export { showDebugOptions, purgeData };

@@ -6,7 +6,26 @@ import { createModal, closeModal, updateUserInfoDisplay } from './ui.js';
 import { generateUniqueId } from './utils.js';
 import { addXP, checkAchievements } from './rewards.js';
 import { showNotification } from './notifications.js';
+import { updateDashboard } from './overview.js';
 
+let currentSort = { column: 'name', direction: 'asc' };
+
+export function isQuestCompleted(quest) {
+    return quest.activities.every(actId => {
+        const activity = activities.find(a => a.id === actId);
+        return activity && (activity.status === 'completed' || (activity.repeatable && activity.completionCount > 0));
+    });
+}
+
+export function updateQuestCompletion(questId) {
+    const quest = quests.find(q => q.id === questId);
+    if (quest) {
+        quest.completed = isQuestCompleted(quest);
+        saveData();
+        updateQuestsList();
+        updateDashboard();
+    }
+}
 
 function loadQuestsSection() {
     const mainContent = document.getElementById('mainContent');
@@ -14,13 +33,47 @@ function loadQuestsSection() {
 
     mainContent.innerHTML = `
         <div class="section-header">
-            <h2>Your Quests</h2>
-            <button id="addQuestBtn" class="action-btn">Add New Quest</button>
+            <h2>Quest Log</h2>
+            <button id="addQuestBtn" class="primary-action-btn">Embark on a New Quest</button>
         </div>
-        <div id="questsList" class="quest-group"></div>
+        <div class="quests-container">
+            <div class="quests-controls">
+                <div class="search-bar">
+                    <input type="text" id="quest-filter" placeholder="Search quests...">
+                </div>
+                <select id="status-filter">
+                    <option value="all">All Quests</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+            <div class="quests-table-container">
+                <table class="quests-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="name">Quest Name</th>
+                            <th class="hide-mobile">Description</th>
+                            <th class="sortable" data-sort="progress">Progress</th>
+                            <th>Reward</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="questsList">
+                        <!-- Quests will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     `;
 
-    document.getElementById('addQuestBtn')?.addEventListener('click', showAddQuestForm);
+    document.getElementById('addQuestBtn').addEventListener('click', showAddQuestForm);
+    document.getElementById('quest-filter').addEventListener('input', filterQuests);
+    document.getElementById('status-filter').addEventListener('change', filterQuests);
+    
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.addEventListener('click', () => sortQuests(th.dataset.sort));
+    });
+
     updateQuestsList();
 }
 
@@ -29,56 +82,101 @@ function updateQuestsList() {
     if (!questsList) return;
 
     if (quests.length === 0) {
-        questsList.innerHTML = '<p>You haven\'t added any quests yet. Click "Add New Quest" to get started!</p>';
+        questsList.innerHTML = '<tr><td colspan="5">Your quest log is empty. Click "Embark on a New Quest" to begin your journey!</td></tr>';
         return;
     }
 
-    questsList.innerHTML = `
-        <div class="grid-list">
-            ${quests.map(quest => {
-                const completedActivities = quest.activities.filter(actId => 
-                    activities.find(a => a.id === actId && a.completed)
-                ).length;
-                const totalActivities = quest.activities.length;
-                const isCompleted = completedActivities === totalActivities;
-                const progressPercentage = (completedActivities / totalActivities) * 100;
+    questsList.innerHTML = quests.map(quest => {
+        const progress = calculateQuestProgress(quest);
+        const completedActivities = Math.round(progress * quest.activities.length);
+        const totalActivities = quest.activities.length;
+        const progressPercentage = progress * 100;
+        const activeQuests = quests.filter(q => !isQuestCompleted(q));
+        const isCompleted = quest.completed;
 
-                return `
-                <div class="grid-item ${quest.completed ? 'completed' : ''}" id="quest-${quest.id}">
-                <div class="item-content">
-                    <h3>${quest.name}</h3>
-                    <p>${quest.description}</p>
+        return `
+            <tr class="quest-row ${isCompleted ? 'completed' : ''}" data-quest-id="${quest.id}">
+                <td>
+                    <i class="fas ${isCompleted ? 'fa-trophy' : 'fa-scroll'} quest-icon"></i>
+                    ${quest.name}
+                </td>
+                <td class="hide-mobile">${quest.description}</td>
+                <td>
                     <div class="quest-progress">
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: ${progressPercentage}%;"></div>
                         </div>
-                        <p class="progress-text">${completedActivities} / ${totalActivities} activities</p>
+                        <span class="progress-text">${completedActivities}/${totalActivities}</span>
                     </div>
-                    <p>Reward: ${quest.reward || 'None'}</p>
-                </div>
-                <div class="item-actions">
-                    ${!quest.completed && isCompleted ? 
-                        `<button class="claim-btn" data-quest="${quest.id}">Claim Reward</button>` : 
-                        ''}
-                    <button class="edit-btn" data-quest="${quest.id}">Edit</button>
-                    <button class="delete-btn" data-quest="${quest.id}">Delete</button>
-                </div>
-            </div>
-            `;
-            }).join('')}
-        </div>
-    `;
+                </td>
+                <td>${quest.reward || 'None'}</td>
+                <td>
+                    <div class="action-buttons">
+                        ${getActionButtons(quest, completedActivities, totalActivities)}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 
-    questsList.querySelectorAll('.claim-btn').forEach(btn => {
+    addEventListenersToButtons();
+
+    // Update sort indicators
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (th.dataset.sort === currentSort.column) {
+            th.classList.add(`sort-${currentSort.direction}`);
+        }
+    });
+}
+
+function getActionButtons(quest, completedActivities, totalActivities) {
+    if (quest.completed) {
+        return `
+            <button class="action-btn edit-btn" data-quest="${quest.id}" title="Edit"><i class="fas fa-edit"></i> Edit</button>
+            <button class="action-btn delete-btn" data-quest="${quest.id}" title="Delete"><i class="fas fa-trash"></i> Del</button>
+        `;
+    } else if (completedActivities === totalActivities) {
+        return `
+            <button class="action-btn claim-btn" data-quest="${quest.id}" title="Claim"><i class="fas fa-check"></i> Claim</button>
+            <button class="action-btn edit-btn" data-quest="${quest.id}" title="Edit"><i class="fas fa-edit"></i> Edit</button>
+            <button class="action-btn delete-btn" data-quest="${quest.id}" title="Delete"><i class="fas fa-trash"></i> Del</button>
+        `;
+    } else {
+        return `
+            <button class="action-btn edit-btn" data-quest="${quest.id}" title="Edit"><i class="fas fa-edit"></i> Edit</button>
+            <button class="action-btn delete-btn" data-quest="${quest.id}" title="Delete"><i class="fas fa-trash"></i> Del</button>
+        `;
+    }
+}
+
+function addEventListenersToButtons() {
+    document.querySelectorAll('.claim-btn').forEach(btn => {
         btn.addEventListener('click', () => claimQuestReward(btn.dataset.quest));
     });
 
-    questsList.querySelectorAll('.edit-btn').forEach(btn => {
+    document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', () => showEditQuestForm(btn.dataset.quest));
     });
 
-    questsList.querySelectorAll('.delete-btn').forEach(btn => {
+    document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteQuest(btn.dataset.quest));
+    });
+}
+
+function filterQuests() {
+    const filterText = document.getElementById('quest-filter').value.toLowerCase();
+    const statusFilter = document.getElementById('status-filter').value;
+
+    document.querySelectorAll('.quest-row').forEach(row => {
+        const questName = row.querySelector('td:first-child').textContent.toLowerCase();
+        const isCompleted = row.classList.contains('completed');
+        const matchesFilter = questName.includes(filterText);
+        const matchesStatus = statusFilter === 'all' || 
+                              (statusFilter === 'completed' && isCompleted) ||
+                              (statusFilter === 'in-progress' && !isCompleted);
+
+        row.style.display = matchesFilter && matchesStatus ? '' : 'none';
     });
 }
 
@@ -86,9 +184,10 @@ function claimQuestReward(questId) {
     const quest = quests.find(q => q.id === questId);
     if (!quest || quest.completed) return;
 
-    const allActivitiesCompleted = quest.activities.every(actId => 
-        activities.find(a => a.id === actId && a.completed)
-    );
+    const allActivitiesCompleted = quest.activities.every(actId => {
+        const activity = activities.find(a => a.id === actId);
+        return activity && (activity.status === 'completed' || (activity.repeatable && activity.completionCount > 0));
+    });
 
     if (!allActivitiesCompleted) {
         showNotification('You need to complete all activities in this quest before claiming the reward.');
@@ -130,7 +229,7 @@ function showAddQuestForm() {
                 <label for="questReward">Reward (optional):</label>
                 <input type="text" id="questReward">
             </div>
-            <button type="submit" class="action-btn">Add Quest</button>
+            <button type="submit" class="primary-action-btn">Add Quest</button>
         </form>
     `);
 
@@ -189,7 +288,7 @@ function showEditQuestForm(questId) {
                 <label for="editQuestReward">Reward (optional):</label>
                 <input type="text" id="editQuestReward" value="${quest.reward || ''}">
             </div>
-            <button type="submit" class="action-btn">Update Quest</button>
+            <button type="submit" class="primary-action-btn">Update Quest</button>
         </form>
     `);
 
@@ -254,6 +353,41 @@ function completeQuest(questId) {
     updateQuestsList();
     updateUserInfoDisplay();
     checkAchievements();
+}
+
+function sortQuests(column) {
+    const direction = column === currentSort.column && currentSort.direction === 'asc' ? 'desc' : 'asc';
+    currentSort = { column, direction };
+
+    quests.sort((a, b) => {
+        let valueA, valueB;
+        switch (column) {
+            case 'name':
+                valueA = a.name.toLowerCase();
+                valueB = b.name.toLowerCase();
+                break;
+            case 'progress':
+                valueA = calculateQuestProgress(a);
+                valueB = calculateQuestProgress(b);
+                break;
+            default:
+                return 0;
+        }
+
+        if (valueA < valueB) return direction === 'asc' ? -1 : 1;
+        if (valueA > valueB) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    updateQuestsList();
+}
+
+function calculateQuestProgress(quest) {
+    const completedActivities = quest.activities.filter(actId => {
+        const activity = activities.find(a => a.id === actId);
+        return activity && (activity.status === 'completed' || (activity.repeatable && activity.completionCount > 0));
+    }).length;
+    return completedActivities / quest.activities.length;
 }
 
 export { loadQuestsSection, updateQuestsList, claimQuestReward, showAddQuestForm, showEditQuestForm, deleteQuest, completeQuest };

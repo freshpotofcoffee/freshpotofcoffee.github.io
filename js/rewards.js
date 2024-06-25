@@ -70,7 +70,7 @@ function loadRewardsSection() {
     mainContent.innerHTML = `
         <div class="section-header">
             <h2>Achievements and Milestones</h2>
-            <button id="addMilestoneBtn" class="action-btn">Add New Milestone</button>
+            <button id="addMilestoneBtn" class="primary-action-btn">Add New Milestone</button>
         </div>
         <div id="achievementsList"></div>
         <div id="milestonesList"></div>
@@ -197,7 +197,7 @@ function showAddMilestoneForm() {
                 <label for="milestoneLevel">Required Level:</label>
                 <input type="number" id="milestoneLevel" min="1" max="${MAX_SKILL_LEVEL}" required>
             </div>
-            <button type="submit" class="action-btn">Add Milestone</button>
+            <button type="submit" class="primary-action-btn">Add Milestone</button>
         </form>
     `);
     document.getElementById('addMilestoneForm').addEventListener('submit', function(e) {

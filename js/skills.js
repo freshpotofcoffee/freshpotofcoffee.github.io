@@ -8,6 +8,9 @@ import { addXP, checkAchievements } from './rewards.js';
 import { showNotification } from './notifications.js';
 import { updateActivitiesList } from './activities.js';
 import { updateQuestsList } from './quests.js';
+import { updateDashboard } from './overview.js';
+
+
 
 const SKILL_ICONS = [
     'fa-book', 'fa-dumbbell', 'fa-brain', 'fa-paint-brush', 'fa-code', 
@@ -22,7 +25,7 @@ function loadSkillsSection() {
     mainContent.innerHTML = `
         <div class="section-header">
             <h2>Your Skills</h2>
-            <button id="addSkillBtn" class="action-btn">Add New Skill</button>
+            <button id="addSkillBtn" class="primary-action-btn">Learn a New Skill</button>
         </div>
         <div id="skillsList"></div>
     `;
@@ -94,7 +97,7 @@ function showAddSkillForm() {
                     ${SKILL_ICONS.map(icon => `<option value="${icon}"><i class="fas ${icon}"></i> ${icon.replace('fa-', '')}</option>`).join('')}
                 </select>
             </div>
-            <button type="submit" class="action-btn">Add Skill</button>
+            <button type="submit" class="primary-action-btn">Add Skill</button>
         </form>
     `);
 
@@ -141,7 +144,7 @@ function showEditSkillForm(skillId) {
                     ${SKILL_ICONS.map(icon => `<option value="${icon}" ${skill.icon === icon ? 'selected' : ''}><i class="fas ${icon}"></i> ${icon.replace('fa-', '')}</option>`).join('')}
                 </select>
             </div>
-            <button type="submit" class="action-btn">Update Skill</button>
+            <button type="submit" class="primary-action-btn">Update Skill</button>
         </form>
         `);
 

@@ -5,8 +5,23 @@ import { saveData } from './data.js';
 import { createModal, closeModal, updateUserInfoDisplay } from './ui.js';
 import { generateUniqueId, XP_PER_LEVEL, MAX_SKILL_LEVEL } from './utils.js';
 import { addXP, checkAchievements } from './rewards.js';
-import { updateQuestsList } from './quests.js';
+import { updateQuestCompletion, updateQuestsList } from './quests.js';
 import { showNotification } from './notifications.js';
+
+let currentSort = { column: 'name', direction: 'asc' };
+
+const ACTIVITY_ICONS = [
+    'fa-tasks', 'fa-running', 'fa-book', 'fa-brain',
+    'fa-pencil-alt', 'fa-code', 'fa-dumbbell', 'fa-palette',
+    'fa-music', 'fa-chess', 'fa-microscope', 'fa-heart',
+    'fa-utensils', 'fa-language', 'fa-camera'
+];
+
+const ACTIVITY_STATUSES = {
+    ACTIVE: 'active',
+    COMPLETED: 'completed',
+    RECURRING: 'recurring'
+};
 
 function loadActivitiesSection() {
     const mainContent = document.getElementById('mainContent');
@@ -15,7 +30,7 @@ function loadActivitiesSection() {
     mainContent.innerHTML = `
         <div class="section-header">
             <h2>Your Activities</h2>
-            <button id="add-activity-btn" class="action-btn">Add New Activity</button>
+            <button id="add-activity-btn" class="primary-action-btn">Add New Activity</button>
         </div>
         <div class="activities-container">
             <div class="activities-controls">
@@ -24,20 +39,18 @@ function loadActivitiesSection() {
                 </div>
                 <select id="status-filter">
                     <option value="all">All Statuses</option>
-                    <option value="not-started">Not Started</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
+                    <option value="${ACTIVITY_STATUSES.ACTIVE}">Active</option>
+                    <option value="${ACTIVITY_STATUSES.COMPLETED}">Completed</option>
+                    <option value="${ACTIVITY_STATUSES.RECURRING}">Recurring</option>
                 </select>
             </div>
             <div class="activities-table-container">
                 <table class="activities-table">
                     <thead>
                         <tr>
-                            <th>Activity Name</th>
-                            <th class="hide-mobile">Related Skill</th>
-                            <th class="hide-small">XP</th>
-                            <th>Status</th>
-                            <th>Type</th>
+                            <th class="sortable" data-sort="name">Activity Name</th>
+                            <th class="sortable" data-sort="xp">XP</th>
+                            <th class="sortable" data-sort="status">Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -52,21 +65,66 @@ function loadActivitiesSection() {
     document.getElementById('add-activity-btn').addEventListener('click', showAddActivityForm);
     document.getElementById('activity-filter').addEventListener('input', filterActivities);
     document.getElementById('status-filter').addEventListener('change', filterActivities);
+    
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.addEventListener('click', () => sortActivities(th.dataset.sort));
+    });
 
     updateActivitiesList();
 }
 
-function updateActivitiesList() {
+function sortActivities(column) {
+    const direction = column === currentSort.column && currentSort.direction === 'asc' ? 'desc' : 'asc';
+    currentSort = { column, direction };
+
+    const sortedActivities = activities.sort((a, b) => {
+        let valueA, valueB;
+        switch (column) {
+            case 'name':
+                valueA = a.name.toLowerCase();
+                valueB = b.name.toLowerCase();
+                break;
+            case 'xp':
+                valueA = a.xp;
+                valueB = b.xp;
+                break;
+            case 'status':
+                valueA = getStatusSortValue(a);
+                valueB = getStatusSortValue(b);
+                break;
+            default:
+                return 0;
+        }
+
+        if (valueA < valueB) return direction === 'asc' ? -1 : 1;
+        if (valueA > valueB) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    updateActivitiesList(sortedActivities);
+}
+
+function getStatusSortValue(activity) {
+    if (activity.repeatable) {
+        return 2; // Recurring
+    } else if (activity.status === ACTIVITY_STATUSES.COMPLETED) {
+        return 3; // Completed
+    } else {
+        return 1; // Active
+    }
+}
+
+function updateActivitiesList(sortedActivities = activities) {
     const activitiesList = document.getElementById('activities-list');
     if (!activitiesList) return;
 
-    if (activities.length === 0) {
-        activitiesList.innerHTML = '<tr><td colspan="6">No activities yet. Click "Add New Activity" to get started!</td></tr>';
+    if (sortedActivities.length === 0) {
+        activitiesList.innerHTML = '<tr><td colspan="5">No activities yet. Click "Add New Activity" to get started!</td></tr>';
         return;
     }
 
     const groupedActivities = {};
-    activities.forEach(activity => {
+    sortedActivities.forEach(activity => {
         const skillId = activity.skillId;
         if (!groupedActivities[skillId]) {
             groupedActivities[skillId] = [];
@@ -74,43 +132,40 @@ function updateActivitiesList() {
         groupedActivities[skillId].push(activity);
     });
 
-    const sortedSkills = Object.keys(groupedActivities).sort((a, b) => {
-        return skills[a].name.localeCompare(skills[b].name);
-    });
+    const sortedSkills = Object.keys(skills).sort((a, b) => skills[a].name.localeCompare(skills[b].name));
 
     let html = '';
     sortedSkills.forEach(skillId => {
-        const skill = skills[skillId];
-        const skillActivities = groupedActivities[skillId];
+        if (groupedActivities[skillId] && groupedActivities[skillId].length > 0) {
+            const skill = skills[skillId];
+            html += `
+                <tr class="skill-group" data-skill-id="${skillId}">
+                    <td colspan="5">
+                        <h3 class="skill-name">${skill.name} <span class="toggle-skill">[-]</span></h3>
+                    </td>
+                </tr>
+            `;
 
-        html += `
-            <tr class="skill-group" data-skill-id="${skillId}">
-                <td colspan="6">
-                    <h3 class="skill-name">${skill.name} <span class="toggle-skill">[-]</span></h3>
-                </td>
-            </tr>
-        `;
-
-        html += skillActivities.map(activity => `
-            <tr class="activity-row" data-activity-id="${activity.id}" data-skill-id="${skillId}">
-                <td>${activity.name}</td>
-                <td class="hide-mobile">${skill.name}</td>
-                <td class="hide-small">${activity.xp} XP</td>
-                <td><span class="status-badge ${activity.status}">${getStatusLabel(activity.status)}</span></td>
-                <td>
-                    <span class="activity-type ${activity.repeatable ? 'repeatable' : 'one-time'}">
-                        ${activity.repeatable ? 'Repeatable' : 'One-time'}
-                    </span>
-                    ${activity.repeatable ? `<span class="completion-count">(Done ${activity.completionCount || 0} times)</span>` : ''}
-                </td>
-                <td>
-                    <div class="action-buttons">
-                        ${getActionButtons(activity)}
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-    });
+            html += groupedActivities[skillId].map(activity => {
+                const isCompleted = activity.status === ACTIVITY_STATUSES.COMPLETED || (activity.repeatable && activity.completionCount > 0);
+                return `
+                    <tr class="activity-row ${isCompleted ? 'completed' : ''}" data-activity-id="${activity.id}" data-skill-id="${skillId}">
+                        <td>
+                            <i class="fas ${activity.icon || 'fa-tasks'} activity-icon"></i>
+                            ${activity.name}
+                        </td>
+                        <td>${activity.xp} XP</td>
+                        <td>${getCombinedStatusLabel(activity)}</td>
+                        <td>
+                            <div class="action-buttons">
+                                ${getActionButtons(activity)}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+    }
+});
 
     activitiesList.innerHTML = html;
 
@@ -132,14 +187,37 @@ function updateActivitiesList() {
             }
         });
     });
+
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (th.dataset.sort === currentSort.column) {
+            th.classList.add(`sort-${currentSort.direction}`);
+        }
+    });
 }
 
+function getCombinedStatusLabel(activity) {
+    if (activity.repeatable) {
+        const count = activity.completionCount || 0;
+        return `
+            <span class="status-badge ${ACTIVITY_STATUSES.RECURRING}">
+                Recurring (${count}x)
+            </span>
+        `;
+    } else {
+        const status = activity.status === ACTIVITY_STATUSES.COMPLETED ? ACTIVITY_STATUSES.COMPLETED : ACTIVITY_STATUSES.ACTIVE;
+        return `
+            <span class="status-badge ${status}">
+                ${status.charAt(0).toUpperCase() + status.slice(1)}
+            </span>
+        `;
+    }
+}
 
 function getStatusLabel(status) {
     switch (status) {
-        case 'not-started': return 'Not Started';
-        case 'in-progress': return 'In Progress';
-        case 'completed': return 'Completed';       
+        case 'in-progress': return 'Active';
+        case 'completed': return 'Finished';       
         default: return 'Unknown';
     }
 }
@@ -147,31 +225,37 @@ function getStatusLabel(status) {
 function getActionButtons(activity) {
     if (activity.repeatable) {
         return `
-            <button class="action-btn complete-btn" data-activity="${activity.id}">Complete</button>
-            <button class="action-btn edit-btn" data-activity="${activity.id}">Edit</button>
-            <button class="action-btn delete-btn" data-activity="${activity.id}">Delete</button>
+            <div class="action-buttons">
+                <button class="action-btn complete-btn" data-activity="${activity.id}" title="Complete"><i class="fas fa-check"></i> Do</button>
+                <button class="action-btn edit-btn" data-activity="${activity.id}" title="Edit"><i class="fas fa-edit"></i> Edit</button>
+                <button class="action-btn delete-btn" data-activity="${activity.id}" title="Delete"><i class="fas fa-trash"></i> Del</button>
+            </div>
         `;
     } else {
         switch (activity.status) {
-            case 'not-started':
+            case ACTIVITY_STATUSES.ACTIVE:
                 return `
-                    <button class="action-btn start-btn" data-activity="${activity.id}">Start</button>
-                    <button class="action-btn edit-btn" data-activity="${activity.id}">Edit</button>
-                    <button class="action-btn delete-btn" data-activity="${activity.id}">Delete</button>
+                    <div class="action-buttons">
+                        <button class="action-btn complete-btn" data-activity="${activity.id}" title="Complete"><i class="fas fa-check"></i> Do</button>
+                        <button class="action-btn edit-btn" data-activity="${activity.id}" title="Edit"><i class="fas fa-edit"></i> Edit</button>
+                        <button class="action-btn delete-btn" data-activity="${activity.id}" title="Delete"><i class="fas fa-trash"></i> Del</button>
+                    </div>
                 `;
-            case 'in-progress':
+            case ACTIVITY_STATUSES.COMPLETED:
                 return `
-                    <button class="action-btn complete-btn" data-activity="${activity.id}">Complete</button>
-                    <button class="action-btn edit-btn" data-activity="${activity.id}">Edit</button>
-                    <button class="action-btn delete-btn" data-activity="${activity.id}">Delete</button>
+                    <div class="action-buttons">
+                        <button class="action-btn undo-btn" data-activity="${activity.id}" title="Undo"><i class="fas fa-undo"></i> Undo</button>
+                        <button class="action-btn edit-btn" data-activity="${activity.id}" title="Edit"><i class="fas fa-edit"></i> Edit</button>
+                        <button class="action-btn delete-btn" data-activity="${activity.id}" title="Delete"><i class="fas fa-trash"></i> Del</button>
+                    </div>
                 `;
-            case 'completed':
+            default:
                 return `
-                    <button class="action-btn undo-btn" data-activity="${activity.id}">Undo</button>
-                    <button class="action-btn edit-btn" data-activity="${activity.id}">Edit</button>
-                    <button class="action-btn delete-btn" data-activity="${activity.id}">Delete</button>
-                `;            default:
-                return '';
+                    <div class="action-buttons">
+                        <button class="action-btn edit-btn" data-activity="${activity.id}" title="Edit"><i class="fas fa-edit"></i> Edit</button>
+                        <button class="action-btn delete-btn" data-activity="${activity.id}" title="Delete"><i class="fas fa-trash"></i> Del</button>
+                    </div>
+                `;
         }
     }
 }
@@ -195,9 +279,13 @@ function filterActivities() {
 
     document.querySelectorAll('.activity-row').forEach(row => {
         const activityName = row.querySelector('td:first-child').textContent.toLowerCase();
-        const activityStatus = row.querySelector('.status-badge').classList[1];
+        const statusBadge = row.querySelector('.status-badge');
+        const statusText = statusBadge.classList[1]; // Get the status from the class
+        
         const matchesFilter = activityName.includes(filterText);
-        const matchesStatus = statusFilter === 'all' || activityStatus === statusFilter;
+        const matchesStatus = 
+            statusFilter === 'all' || 
+            statusFilter === statusText;
 
         row.style.display = matchesFilter && matchesStatus ? '' : 'none';
     });
@@ -230,13 +318,18 @@ function completeActivity(activityId) {
 
     if (activity.repeatable) {
         activity.completionCount = (activity.completionCount || 0) + 1;
-    } else if (activity.status === 'completed') {
-        return;
+        activity.status = ACTIVITY_STATUSES.RECURRING;
     } else {
-        activity.status = 'completed';
+        activity.status = ACTIVITY_STATUSES.COMPLETED;
     }
     
     activity.lastUpdated = Date.now();
+
+    quests.forEach(quest => {
+        if (quest.activities.includes(activityId)) {
+            updateQuestCompletion(quest.id);
+        }
+    });    
 
     // Function to handle XP gain and level up
     const addXPAndLevelUp = (amount) => {
@@ -252,7 +345,6 @@ function completeActivity(activityId) {
         }
         if (levelsGained > 0) {
             showNotification(`${skill.name} leveled up to ${skill.level}!`, 'success');
-            addXP(20 * levelsGained); // Bonus XP for leveling up
         }
     };
 
@@ -274,11 +366,17 @@ function completeActivity(activityId) {
 
 function undoActivityCompletion(activityId) {
     const activity = activities.find(a => a.id === activityId);
-    if (activity && !activity.repeatable && activity.status === 'completed') {
-        activity.status = 'in-progress';
+    if (activity && !activity.repeatable && activity.status === ACTIVITY_STATUSES.COMPLETED) {
+        activity.status = ACTIVITY_STATUSES.ACTIVE;
         saveData();
         updateActivitiesList();
+        showNotification(`"${activity.name}" has been marked as active again.`, 'info');
     }
+    quests.forEach(quest => {
+        if (quest.activities.includes(activityId)) {
+            updateQuestCompletion(quest.id);
+        }
+    });
 }
 
 function showAddActivityForm() {
@@ -287,6 +385,12 @@ function showAddActivityForm() {
             <div class="form-group">
                 <label for="activityName">Activity Name:</label>
                 <input type="text" id="activityName" required>
+            </div>
+            <div class="form-group">
+                <label for="activityIcon">Activity Icon:</label>
+                <select id="activityIcon" required>
+                    ${ACTIVITY_ICONS.map(icon => `<option value="${icon}"><i class="fas ${icon}"></i> ${icon.replace('fa-', '')}</option>`).join('')}
+                </select>
             </div>
             <div class="form-group">
                 <label for="activityXP">XP Reward:</label>
@@ -304,7 +408,7 @@ function showAddActivityForm() {
                     Repeatable
                 </label>
             </div>
-            <button type="submit" class="action-btn">Add Activity</button>
+            <button type="submit" class="primary-action-btn">Add Activity</button>
         </form>
     `);
 
@@ -313,10 +417,11 @@ function showAddActivityForm() {
         const newActivity = { 
             id: generateUniqueId(),
             name: document.getElementById('activityName').value.trim(),
+            icon: document.getElementById('activityIcon').value,
             xp: parseInt(document.getElementById('activityXP').value),
             skillId: document.getElementById('activitySkill').value,
             repeatable: document.getElementById('activityRepeatable').checked,
-            status: 'not-started',
+            status: ACTIVITY_STATUSES.ACTIVE,  // Set the initial status to ACTIVE
             completionCount: 0,
             lastUpdated: Date.now()
         };
@@ -325,7 +430,6 @@ function showAddActivityForm() {
         saveData();
         closeModal(modal);
         updateActivitiesList();
-        addXP(5);
     });
 }
 
@@ -339,6 +443,12 @@ function showEditActivityForm(activityId) {
             <div class="form-group">
                 <label for="editActivityName">Activity Name:</label>
                 <input type="text" id="editActivityName" value="${activity.name}" required>
+            </div>
+            <div class="form-group">
+                <label for="editActivityIcon">Activity Icon:</label>
+                <select id="editActivityIcon" required>
+                    ${ACTIVITY_ICONS.map(icon => `<option value="${icon}" ${activity.icon === icon ? 'selected' : ''}><i class="fas ${icon}"></i> ${icon.replace('fa-', '')}</option>`).join('')}
+                </select>
             </div>
             <div class="form-group">
                 <label for="editActivityXP">XP Reward:</label>
@@ -356,7 +466,7 @@ function showEditActivityForm(activityId) {
                     Repeatable
                 </label>
             </div>
-            <button type="submit" class="action-btn">Update Activity</button>
+            <button type="submit" class="primary-action-btn">Update Activity</button>
         </form>
     `);
 
@@ -367,14 +477,18 @@ function showEditActivityForm(activityId) {
             activities[activityIndex] = { 
                 ...activities[activityIndex],
                 name: document.getElementById('editActivityName').value.trim(),
+                icon: document.getElementById('editActivityIcon').value,
                 xp: parseInt(document.getElementById('editActivityXP').value),
                 skillId: document.getElementById('editActivitySkill').value,
                 repeatable: document.getElementById('editActivityRepeatable').checked,
-                lastUpdated: Date.now()
+                lastUpdated: Date.now(),
+                status: activities[activityIndex].status, // Preserve the existing status
+
             };
             saveData();
             closeModal(modal);
             updateActivitiesList();
+            showNotification('Activity updated successfully!', 'success');
         }
     });
 }
@@ -383,17 +497,21 @@ function deleteActivity(activityId) {
     if (confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
         const index = activities.findIndex(a => a.id === activityId);
         if (index !== -1) {
+            const deletedActivity = activities[index]; // Store the activity before deleting
             activities.splice(index, 1);  // Remove the activity from the array
+
+            // Update quests that might reference this activity
+            quests.forEach(quest => {
+                quest.activities = quest.activities.filter(id => id !== activityId);
+            });
+
+            saveData();
+            updateActivitiesList();
+            updateQuestsList();
+            showNotification(`"${deletedActivity.name}" has been deleted.`, 'info');
+        } else {
+            showNotification('Activity not found.', 'error');
         }
-
-        // Update quests that might reference this activity
-        quests.forEach(quest => {
-            quest.activities = quest.activities.filter(id => id !== activityId);
-        });
-
-        saveData();
-        updateActivitiesList();
-        updateQuestsList();
     }
 }
 
@@ -445,7 +563,6 @@ export {
     showEditActivityForm, 
     deleteActivity, 
     completeActivity,
-    startActivity,
     undoActivityCompletion,
     updateStreak 
 };
