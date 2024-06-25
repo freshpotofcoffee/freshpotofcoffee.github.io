@@ -1,10 +1,13 @@
 // skills.js
 
-import { skills, activities } from './main.js';
+import { skills, activities, quests } from './main.js';
 import { saveData } from './data.js';
 import { createModal, closeModal } from './ui.js';
 import { generateUniqueId, XP_PER_LEVEL } from './utils.js';
 import { addXP, checkAchievements } from './rewards.js';
+import { showNotification } from './notifications.js';
+import { updateActivitiesList } from './activities.js';
+import { updateQuestsList } from './quests.js';
 
 const SKILL_ICONS = [
     'fa-book', 'fa-dumbbell', 'fa-brain', 'fa-paint-brush', 'fa-code', 
@@ -101,12 +104,12 @@ function showAddSkillForm() {
         const icon = document.getElementById('skillIcon').value;
         
         if (!skillName) {
-            alert('Please enter a skill name.');
+            showNotification('Please enter a skill name.');
             return;
         }
 
         if (Object.values(skills).some(skill => skill && skill.name && skill.name.toLowerCase() === skillName.toLowerCase())) {
-            alert('Skill already exists!');
+            showNotification('Skill already exists!');
             return;
         }
 
@@ -149,12 +152,12 @@ function showEditSkillForm(skillId) {
         const icon = document.getElementById('editSkillIcon').value;
         
         if (!skillName) {
-            alert('Please enter a skill name.');
+            showNotification('Please enter a skill name.');
             return;
         }
 
         if (Object.values(skills).some(s => s && s.id !== skillId && s.name && s.name.toLowerCase() === skillName.toLowerCase())) {
-            alert('A skill with this name already exists!');
+            showNotification('A skill with this name already exists!');
             return;
         }
 
@@ -168,10 +171,29 @@ function showEditSkillForm(skillId) {
 
 function deleteSkill(skillId) {
     if (confirm('Are you sure you want to delete this skill? This action cannot be undone.')) {
+        // Remove the skill from the skills object
         delete skills[skillId];
-        activities = activities.filter(a => a.skillId !== skillId);
-        loadSkillsSection();
+
+        // Remove activities associated with this skill
+        const activitiesToRemove = activities.filter(activity => activity.skillId === skillId);
+        activitiesToRemove.forEach(activity => {
+            const index = activities.findIndex(a => a.id === activity.id);
+            if (index !== -1) {
+                activities.splice(index, 1);
+            }
+        });
+
+        // Update quests that might reference activities of this skill
+        quests.forEach(quest => {
+            quest.activities = quest.activities.filter(activityId => {
+                const activity = activities.find(a => a.id === activityId);
+                return            });
+        });
+
         saveData();
+        updateSkillsList();
+        updateActivitiesList();        
+        updateQuestsList();
     }
 }
 

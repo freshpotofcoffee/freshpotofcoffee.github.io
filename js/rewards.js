@@ -4,6 +4,8 @@ import { user, skills, activities, quests, rewards } from './main.js';
 import { saveData } from './data.js';
 import { createModal, closeModal, updateUserInfoDisplay } from './ui.js';
 import { generateUniqueId, MAX_SKILL_LEVEL, XP_PER_LEVEL, calculateLevel } from './utils.js';
+import { showNotification } from './notifications.js';
+
 
 const ACHIEVEMENTS = [
     { id: 'first_skill', name: 'Skill Starter', description: 'Create your first skill', check: () => Object.keys(skills).length >= 1 },
@@ -224,13 +226,13 @@ function claimReward(rewardId) {
     const skill = skills[reward.skillId];
     if (skill && skill.level >= reward.level) {
         reward.claimed = true;
-        alert(`Congratulations! You've claimed the reward: ${reward.name}`);
+        showNotification(`Congratulations! You've claimed the reward: ${reward.name}`);
         addXP(30);
         saveData();
         updateRewardsList();
         updateUserInfoDisplay();
     } else {
-        alert(`You haven't reached the required level to claim this reward yet.`);
+        showNotification(`You haven't reached the required level to claim this reward yet.`);
     }
 }
 
@@ -243,7 +245,7 @@ function addXP(amount) {
     user.level = calculateLevel(user.xp);
     
     if (user.level > oldLevel) {
-        alert(`Congratulations! You've reached level ${user.level}!`);
+        showNotification(`Congratulations! You've reached level ${user.level}!`);
     }
     checkAchievements();
     saveData();
@@ -255,7 +257,7 @@ function checkAchievements() {
     ACHIEVEMENTS.forEach(achievement => {
         if (!user.achievements.includes(achievement.id) && achievement.check()) {
             user.achievements.push(achievement.id);
-            alert(`Achievement Unlocked: ${achievement.name}\n${achievement.description}`);
+            showNotification(`Achievement Unlocked: ${achievement.name}\n${achievement.description}`);
             achievementsUnlocked = true;
         }
     });

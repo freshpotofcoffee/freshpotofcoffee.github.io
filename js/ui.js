@@ -11,6 +11,7 @@ import { showEditActivityForm, deleteActivity, completeActivity } from './activi
 import { showEditQuestForm, deleteQuest, claimQuestReward } from './quests.js';
 import { showAddMilestoneForm, claimReward } from './rewards.js';
 import { XP_PER_LEVEL, MAX_SKILL_LEVEL, calculateLevel, xpForNextLevel } from './utils.js';
+import { getNotificationHistory, clearNotificationHistory } from './notifications.js';
 
 function initializeDashboard() {
     const navButtons = document.querySelectorAll('.nav-btn');
@@ -331,15 +332,65 @@ function importData() {
                 updateUserInfoDisplay();
                 loadSection('overview');
 
-                alert('Data imported successfully!');
+                showNotification('Data imported successfully!');
             } catch (error) {
                 console.error('Error parsing imported data:', error);
-                alert('Error importing data. Please make sure the file is a valid JSON export from Habit Adventure.');
+                showNotification('Error importing data. Please make sure the file is a valid JSON export from Habit Adventure.');
             }
         }
     }
 
     input.click();
+}
+
+export function showNotificationHistory() {
+    const history = getNotificationHistory();
+    
+    const modalContent = `
+        <div class="notification-history-list">
+            ${history.length > 0 ? history.map(notification => `
+                <div class="notification-history-item ${notification.type}">
+                    <div class="notification-history-icon">
+                        <i class="fas ${getNotificationIcon(notification.type)}"></i>
+                    </div>
+                    <div class="notification-history-content">
+                        <div class="notification-history-time">${formatDate(notification.timestamp)}</div>
+                        <div class="notification-history-message">${notification.message}</div>
+                    </div>
+                </div>
+            `).reverse().join('') : '<p class="no-notifications">No notifications yet.</p>'}
+        </div>
+        <button id="clearHistoryBtn" class="action-btn">Clear History</button>
+    `;
+
+    const modal = createModal('Notification History', modalContent);
+    modal.classList.add('notification-history-modal');
+
+    document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+        clearNotificationHistory();
+        closeModal(modal);
+        showNotificationHistory(); // Reopen to show empty history
+    });
+}
+
+function getNotificationIcon(type) {
+    switch(type) {
+        case 'success': return 'fa-check-circle';
+        case 'warning': return 'fa-exclamation-triangle';
+        case 'error': return 'fa-times-circle';
+        default: return 'fa-info-circle';
+    }
+}
+
+function formatDate(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleString(undefined, { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit'
+    });
 }
 
 export { showLoginOverlay, hideLoginOverlay, updateUIComponents, updateMiniProfile, showSettingsMenu, updateUserInfoDisplay, createModal, closeModal, showEditProfileForm, exportData, importData, initializeDashboard };

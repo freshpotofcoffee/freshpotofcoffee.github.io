@@ -2,25 +2,25 @@
 
 import { initAuth, signIn, userSignOut } from './auth.js';
 import { loadData, saveData, loadLocalData, loadCloudData } from './data.js';
-import { initializeDashboard, updateUIComponents, showSettingsMenu, showLoginOverlay, hideLoginOverlay } from './ui.js';
+import { initializeDashboard, updateUIComponents, showSettingsMenu, showLoginOverlay, hideLoginOverlay, showNotificationHistory } from './ui.js';
 import { initDarkMode } from './darkMode.js';
 import { showWelcomeModal, startWalkthrough } from './tutorial.js';
 import { createDefaultUser } from './utils.js';
 import { loadSection } from './navigation.js';
-
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js';
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
 import { getFirestore, doc, setDoc, getDoc, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js';
+import { showNotification } from './notifications.js';
 
 // Global variables
-let skills = {};
-let activities = [];
-let quests = [];
-let rewards = [];
-let user = createDefaultUser();
-let localData = { user: null, skills: {}, activities: [], quests: [], rewards: [] };
-let cloudData = { user: null, skills: {}, activities: [], quests: [], rewards: [] };
-let scrollbars = {};
+export let skills = {};
+export let activities = [];
+export let quests = [];
+export let rewards = [];
+export let user = createDefaultUser();
+export let localData = { user: null, skills: {}, activities: [], quests: [], rewards: [] };
+export let cloudData = { user: null, skills: {}, activities: [], quests: [], rewards: [] };
+export let scrollbars = {};
 
 const firebaseConfig = {
     apiKey: "AIzaSyC4Bvfckp0t73HbLMmVF9exusaagGgSLOw",
@@ -33,8 +33,8 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
 enableIndexedDbPersistence(db).catch((err) => {
     if (err.code == 'failed-precondition') {
@@ -44,10 +44,7 @@ enableIndexedDbPersistence(db).catch((err) => {
     }
 });
 
-document.addEventListener("DOMContentLoaded", function() {
-    initAuth();
-    initDarkMode();
-
+function initializeUI() {
     const settingsBtn = document.getElementById('settingsBtn');
     if (settingsBtn) {
         settingsBtn.addEventListener('click', showSettingsMenu);
@@ -70,11 +67,13 @@ document.addEventListener("DOMContentLoaded", function() {
     const navButtons = document.querySelectorAll('.nav-btn');
 
     function toggleSidebar() {
-        sidebar.classList.toggle('sidebar-open');
-        if (sidebar.classList.contains('sidebar-open')) {
-            openSidebar();
-        } else {
-            closeSidebar();
+        if (sidebar) {
+            sidebar.classList.toggle('sidebar-open');
+            if (sidebar.classList.contains('sidebar-open')) {
+                openSidebar();
+            } else {
+                closeSidebar();
+            }
         }
     }
 
@@ -110,11 +109,66 @@ document.addEventListener("DOMContentLoaded", function() {
     if (signInBtn) signInBtn.addEventListener('click', signIn);
     if (signOutBtn) signOutBtn.addEventListener('click', userSignOut);
 
+    // Add notification history button
+    const notificationHistoryBtn = document.createElement('button');
+    notificationHistoryBtn.innerHTML = '<i class="fas fa-bell"></i>';
+    notificationHistoryBtn.classList.add('icon-btn', 'notification-history-btn');
+    notificationHistoryBtn.title = 'Notification History';
+    notificationHistoryBtn.addEventListener('click', showNotificationHistory);
+
+    // Find the sidebar-actions div or create it if it doesn't exist
+    let sidebarActions = sidebar ? sidebar.querySelector('.sidebar-actions') : null;
+    if (!sidebarActions && sidebar) {
+        sidebarActions = document.createElement('div');
+        sidebarActions.classList.add('sidebar-actions');
+        sidebar.appendChild(sidebarActions);
+    }
+
+    // Add the notification history button to sidebar-actions
+    if (sidebarActions) {
+        sidebarActions.appendChild(notificationHistoryBtn);
+    } else {
+        console.error('Sidebar actions container not found');
+    }
+
+    // Add or update version info
+    let versionInfo = sidebar ? sidebar.querySelector('.version-info') : null;
+    if (!versionInfo && sidebar) {
+        versionInfo = document.createElement('div');
+        versionInfo.classList.add('version-info');
+        sidebar.appendChild(versionInfo);
+    }
+    if (versionInfo) {
+        versionInfo.innerHTML = `
+            <span class="version-label">Version</span>
+            <span class="version-number">0.56</span>
+        `;
+    }
+
+    // Add notification container to the body
+    let notificationContainer = document.getElementById('notification-container');
+    if (!notificationContainer) {
+        notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notification-container';
+        document.body.appendChild(notificationContainer);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    initAuth();
+    initDarkMode();
+    initializeUI();
+
     if (!localStorage.getItem('tutorialCompleted')) {
         showWelcomeModal();
     }
 
-    document.getElementById('helpBtn').addEventListener('click', startWalkthrough);
+    const helpBtn = document.getElementById('helpBtn');
+    if (helpBtn) {
+        helpBtn.addEventListener('click', startWalkthrough);
+    } else {
+        console.error('Help button not found');
+    }
 
     // Initialize with the overview section
     loadSection('overview');
@@ -146,16 +200,9 @@ function closeSidebar() {
     }
 }
 
-// Export all variables and functions that need to be accessed by other modules
-export { 
-    skills, 
-    activities, 
-    quests, 
-    rewards, 
-    user, 
-    scrollbars, 
-    localData, 
-    cloudData, 
-    auth, 
-    db 
-};
+// Initialize user's notification history if it doesn't exist
+if (!user.notificationHistory) {
+    user.notificationHistory = [];
+}
+
+export { showNotification };

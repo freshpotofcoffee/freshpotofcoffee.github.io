@@ -5,6 +5,8 @@ import { saveData } from './data.js';
 import { createModal, closeModal, updateUserInfoDisplay } from './ui.js';
 import { generateUniqueId } from './utils.js';
 import { addXP, checkAchievements } from './rewards.js';
+import { showNotification } from './notifications.js';
+
 
 function loadQuestsSection() {
     const mainContent = document.getElementById('mainContent');
@@ -89,7 +91,7 @@ function claimQuestReward(questId) {
     );
 
     if (!allActivitiesCompleted) {
-        alert('You need to complete all activities in this quest before claiming the reward.');
+        showNotification('You need to complete all activities in this quest before claiming the reward.');
         return;
     }
 
@@ -98,9 +100,9 @@ function claimQuestReward(questId) {
     addXP(50);
 
     if (quest.reward) {
-        alert(`Congratulations! You've completed the quest "${quest.name}" and earned the reward: ${quest.reward}`);
+        showNotification(`Congratulations! You've completed the quest "${quest.name}" and earned the reward: ${quest.reward}`);
     } else {
-        alert(`Congratulations! You've completed the quest "${quest.name}"`);
+        showNotification(`Congratulations! You've completed the quest "${quest.name}"`);
     }
     saveData();
     updateQuestsList();
@@ -140,7 +142,7 @@ function showAddQuestForm() {
         const questReward = document.getElementById('questReward').value.trim();
 
         if (!questName || !questDescription || selectedActivities.length === 0) {
-            alert('Please fill in all required fields.');
+            showNotification('Please fill in all required fields.');
             return;
         }
 
@@ -200,7 +202,7 @@ function showEditQuestForm(questId) {
         const questReward = document.getElementById('editQuestReward').value.trim();
 
         if (!questName || !questDescription || selectedActivities.length === 0) {
-            alert('Please fill in all required fields.');
+            showNotification('Please fill in all required fields.');
             return;
         }
 
@@ -222,9 +224,12 @@ function showEditQuestForm(questId) {
 
 function deleteQuest(questId) {
     if (confirm('Are you sure you want to delete this quest? This action cannot be undone.')) {
-        quests = quests.filter(q => q.id !== questId);
-        saveData();
-        loadQuestsSection();
+        const index = quests.findIndex(q => q.id === questId);
+        if (index !== -1) {
+            quests.splice(index, 1);  // Remove the quest from the array
+        }
+
+        saveData();        updateQuestsList();
     }
 }
 
@@ -241,9 +246,9 @@ function completeQuest(questId) {
     addXP(50);
 
     if (quest.reward) {
-        alert(`Congratulations! You've completed the quest "${quest.name}" and earned the reward: ${quest.reward}`);
+        showNotification(`Congratulations! You've completed the quest "${quest.name}" and earned the reward: ${quest.reward}`);
     } else {
-        alert(`Congratulations! You've completed the quest "${quest.name}"`);
+        showNotification(`Congratulations! You've completed the quest "${quest.name}"`);
     }
     saveData();
     updateQuestsList();

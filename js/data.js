@@ -115,6 +115,7 @@ async function updateGlobalVariables(data) {
     quests.push(...(data.quests || []));
     rewards.length = 0;
     rewards.push(...(data.rewards || []));
+    user.notificationHistory = data.user.notificationHistory || [];
 }
 
 async function resetToDefaultData() {

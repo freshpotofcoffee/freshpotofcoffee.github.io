@@ -5,6 +5,8 @@ import { saveData } from './data.js';
 import { createModal, updateUserInfoDisplay, updateMiniProfile } from './ui.js';
 import { createDefaultUser } from './utils.js';
 import { loadSection } from './navigation.js';
+import { showNotification } from './notifications.js';
+
 
 function showDebugOptions() {
     const debugModal = createModal('Debug Options', `
@@ -61,7 +63,7 @@ async function purgeData(dataType) {
         console.error("Error syncing purged data:", error);
     }
 
-    alert(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} have been purged.`);
+    showNotification(`${dataType.charAt(0).toUpperCase() + dataType.slice(1)} have been purged.`);
     
     // Refresh the current section
     const currentSection = document.querySelector('.nav-btn.active').dataset.section;
@@ -77,7 +79,7 @@ async function purgeData(dataType) {
 function clearLocalStorage() {
     localStorage.removeItem('habitAdventureData');
     console.log('Local storage cleared');
-    alert('Local storage has been cleared.');
+    showNotification('Local storage has been cleared.');
 }
 
 export { showDebugOptions, purgeData, clearLocalStorage };

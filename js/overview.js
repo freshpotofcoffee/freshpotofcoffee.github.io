@@ -80,20 +80,20 @@ export function loadOverviewSection() {
                 </div>
             </div>
 
-             <div class="dashboard-grid">
+            <div class="dashboard-grid">
                 <div class="dashboard-card top-skills">
                     <h3>Top Skills</h3>
                     <div class="card-content">
-                        ${topSkills.length > 0 ? topSkills.map(([id, data]) => `
+                        ${topSkills.length > 0 ? topSkills.map(([id, skill]) => `
                             <div class="skill-entry">
-                                <div class="skill-icon"><i class="fas ${data.icon}"></i></div>
+                                <div class="skill-icon"><i class="fas ${skill.icon}"></i></div>
                                 <div class="skill-details">
-                                    <div class="skill-name">${data.name}</div>
-                                    <div class="skill-level">Level ${data.level}</div>
+                                    <div class="skill-name">${skill.name}</div>
+                                    <div class="skill-level">Level ${skill.level}</div>
                                     <div class="skill-bar-wrapper">
-                                        <div class="skill-bar" style="width: ${(data.level / MAX_SKILL_LEVEL) * 100}%"></div>
+                                        <div class="skill-bar" style="width: ${(skill.xp / XP_PER_LEVEL) * 100}%"></div>
                                     </div>
-                                    <div class="skill-xp">${data.xp} / ${XP_PER_LEVEL} XP</div>
+                                    <div class="skill-xp">${skill.xp} / ${XP_PER_LEVEL} XP</div>
                                 </div>
                             </div>
                         `).join('') : '<p class="no-skills">No skills added yet. Start by adding a new skill!</p>'}
@@ -102,30 +102,23 @@ export function loadOverviewSection() {
                 </div>
 
                 <div class="dashboard-card activity-log">
-                    <h3>Activity Log</h3>
+                    <h3>Recent Activities</h3>
                     <div class="card-content">
-                        ${recentActivities.length > 0 ? `
-                            <table class="activity-table">
-                                <thead>
-                                    <tr>
-                                        <th>Activity</th>
-                                        <th>Skill</th>
-                                        <th>XP</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${recentActivities.map(activity => `
-                                        <tr>
-                                            <td>${activity.name}</td>
-                                            <td>${skills[activity.skillId]?.name || 'Unknown Skill'}</td>
-                                            <td>${activity.xp} XP</td>
-                                            <td>${activity.completed ? '<span class="status completed">Completed</span>' : '<span class="status todo">To-Do</span>'}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        ` : '<p class="no-activities">No recent activities. Start by adding a new activity!</p>'}
+                        ${recentActivities.length > 0 ? recentActivities.map(activity => `
+                            <div class="activity-entry">
+                                <div class="activity-icon"><i class="fas ${skills[activity.skillId]?.icon || 'fa-question'}"></i></div>
+                                <div class="activity-details">
+                                    <div class="activity-name">${activity.name}</div>
+                                    <div class="activity-info">
+                                        <span class="activity-skill">${skills[activity.skillId]?.name || 'Unknown Skill'}</span>
+                                        <span class="activity-xp">${activity.xp} XP</span>
+                                    </div>
+                                    <div class="activity-status ${activity.completed ? 'completed' : 'todo'}">
+                                        ${activity.completed ? 'Completed' : 'To-Do'}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('') : '<p class="no-activities">No recent activities. Start by adding a new activity!</p>'}
                     </div>
                     <a href="#" class="see-more" data-section="activities">View all activities</a>
                 </div>
@@ -133,7 +126,7 @@ export function loadOverviewSection() {
                 <div class="dashboard-card active-quests">
                     <h3>Active Quests</h3>
                     <div class="card-content">
-                        ${activeQuests.length > 0 ? activeQuests.slice(0, 3).map(quest => {
+                        ${activeQuests.length > 0 ? activeQuests.map(quest => {
                             const completedActivities = quest.activities.filter(actId => 
                                 activities.find(act => act.id === actId && act.completed)
                             ).length;
@@ -156,8 +149,7 @@ export function loadOverviewSection() {
                         }).join('') : '<p class="no-quests">No active quests. Start a new quest to challenge yourself!</p>'}
                     </div>
                     <a href="#" class="see-more" data-section="quests">View all quests</a>
-                </div>
-            </div>
+                </div>            </div>
         </div>
     `;
 
