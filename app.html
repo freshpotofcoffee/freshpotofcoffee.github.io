@@ -13,42 +13,45 @@
 </head>
 <body>
     <div id="notification-container"></div>
-    <button id="sidebarToggle" class="sidebar-toggle">☰</button>
-    <div class="app-container">
-        <aside class="sidebar">
-            <div class="header">
+    
+    <header class="main-header">
+        <div class="header-content">
+            <a href="index.html" class="logo-link">
                 <img src="images/habit-adventure-logo.png" alt="Habit Adventure Logo" class="logo">
-            </div>
-            <div id="userProfileMini" class="user-profile-mini"></div>
+            </a>
             <nav class="main-nav">
-                <button class="nav-btn active" data-section="overview"><i class="fas fa-home"></i> Character Sheet</button>
-                <button class="nav-btn" data-section="skills"><i class="fas fa-book-open"></i> Skills</button>
-                <button class="nav-btn" data-section="activities"><i class="fas fa-tasks"></i> Activities</button>
-                <button class="nav-btn" data-section="quests"><i class="fas fa-map-marked-alt"></i> Quests</button>
-                <button class="nav-btn" data-section="rewards"><i class="fas fa-trophy"></i> Milestones</button>
-                <button class="nav-btn" data-section="howToUse"><i class="fas fa-info-circle"></i> How to Use</button>
+                <a href="#" class="nav-link" data-section="overview"><i class="nav-icon fas fa-home"></i> Overview</a>
+                <a href="#" class="nav-link" data-section="skills"><i class="nav-icon fas fa-book-open"></i> Skills</a>
+                <a href="#" class="nav-link" data-section="activities"><i class="nav-icon fas fa-tasks"></i> Activities</a>
+                <a href="#" class="nav-link" data-section="quests"><i class="nav-icon fas fa-map-marked-alt"></i> Quests</a>
+                <a href="#" class="nav-link" data-section="rewards"><i class="nav-icon fas fa-trophy"></i> Rewards</a>
+                <a href="#" class="nav-link" data-section="howToUse"><i class="nav-icon fas fa-question"></i> Guide</a>
             </nav>
-            <div class="sidebar-actions">
-                <button id="homeBtn" class="icon-btn" title="Home"><i class="fas fa-home"></i></button>
-                <button id="helpBtn" class="icon-btn" title="Help"><i class="fas fa-question-circle"></i></button>
+            <div class="user-actions">
+                <button id="notificationsBtn" class="icon-btn" title="Notifications"><i class="fas fa-bell"></i></button>
                 <button id="settingsBtn" class="icon-btn" title="Settings"><i class="fas fa-cog"></i></button>
+                <div id="userProfileMini" class="user-profile-mini"></div>
             </div>
-        </aside>
-
-        <main class="main-content">
-            <section id="mainContent">
-            </section>
-        </main>
-    </div>
-
-    <div id="tutorialOverlay" class="tutorial-overlay">
-        <div class="tutorial-content">
-            <h2 id="tutorialTitle"></h2>
-            <p id="tutorialDescription"></p>
-            <button id="tutorialNext" class="action-btn">Next</button>
         </div>
-    </div>
+    </header>
 
+    <main class="main-content">
+        <section id="mainContent">
+            <!-- This is where your main content will be loaded -->
+        </section>
+    </main>
+
+    <nav class="mobile-nav">
+        <a href="#" class="mobile-nav-link" data-section="overview"><i class="fas fa-home"></i><span></span></a>
+        <a href="#" class="mobile-nav-link" data-section="skills"><i class="fas fa-book-open"></i><span></span></a>
+        <a href="#" class="mobile-nav-link" data-section="activities"><i class="fas fa-tasks"></i><span></span></a>
+        <a href="#" class="mobile-nav-link" data-section="quests"><i class="fas fa-map-marked-alt"></i><span></span></a>
+        <a href="#" class="mobile-nav-link" data-section="rewards"><i class="fas fa-trophy"></i><span></span></a>
+        <a href="#" class="mobile-nav-link" data-section="howToUse"><i class="fas fa-question"></i><span></span></a>
+        <button id="mobileNotificationsBtn" class="mobile-nav-action"><i class="fas fa-bell"></i><span></span></button>
+        <button id="mobileSettingsBtn" class="mobile-nav-action"><i class="fas fa-cog"></i><span></span></button>
+    </nav>
     <script type="module" src="js/main.js"></script>
+
 </body>
 </html>

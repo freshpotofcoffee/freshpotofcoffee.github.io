@@ -2,7 +2,7 @@
 
 import { initAuth, signIn, userSignOut } from './auth.js';
 import { loadData, saveData, loadLocalData, loadCloudData } from './data.js';
-import { initializeDashboard, updateUIComponents, showSettingsMenu, showLoginOverlay, hideLoginOverlay, showNotificationHistory } from './ui.js';
+import { showSettingsMenu, showNotificationHistory } from './ui.js';
 import { initDarkMode } from './darkMode.js';
 import { showWelcomeModal, startWalkthrough } from './tutorial.js';
 import { createDefaultUser } from './utils.js';
@@ -45,112 +45,117 @@ enableIndexedDbPersistence(db).catch((err) => {
 });
 
 function initializeUI() {
+    const notificationsBtn = document.getElementById('notificationsBtn');
+    const mobileNotificationsBtn = document.getElementById('mobileNotificationsBtn');
     const settingsBtn = document.getElementById('settingsBtn');
-    if (settingsBtn) {
-        settingsBtn.addEventListener('click', showSettingsMenu);
-    } else {
-        console.error('Settings button not found');
+    const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
+    const userProfileMini = document.getElementById('userProfileMini');
+    const mobileUserProfileMini = document.getElementById('mobileUserProfileMini');
+
+    function showNotifications(e) {
+        e.preventDefault();
+        showNotificationHistory();
     }
 
-    const homeBtn = document.getElementById('homeBtn');
-    if (homeBtn) {
-        homeBtn.addEventListener('click', () => {
-            window.location.href = 'index.html';
-        });
-    } else {
-        console.error('Home button not found');
+    function showSettings(e) {
+        e.preventDefault();
+        showSettingsMenu();
     }
 
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebar = document.querySelector('.sidebar');
-    const mainContent = document.querySelector('.main-content');
-    const navButtons = document.querySelectorAll('.nav-btn');
-
-    function toggleSidebar() {
-        if (sidebar) {
-            sidebar.classList.toggle('sidebar-open');
-            if (sidebar.classList.contains('sidebar-open')) {
-                openSidebar();
-            } else {
-                closeSidebar();
-            }
-        }
-    }
-
-    if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener('click', toggleSidebar);
-
-        document.addEventListener('click', function(event) {
-            const isClickInsideSidebar = sidebar.contains(event.target);
-            const isClickOnToggleButton = event.target === sidebarToggle;
-            
-            if (!isClickInsideSidebar && !isClickOnToggleButton && sidebar.classList.contains('sidebar-open')) {
-                toggleSidebar();
-            }
-        });
-
-        sidebar.addEventListener('click', function(event) {
-            event.stopPropagation();
-        });
-    }
-
-    navButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            loadSection(button.dataset.section);
-            if (window.innerWidth <= 768 && sidebar) {
-                toggleSidebar();
-            }
+    const navLinks = document.querySelectorAll('.nav-link, .mobile-nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadSection(link.dataset.section);
         });
     });
 
-    const signInBtn = document.getElementById('signInBtn');
-    const signOutBtn = document.getElementById('signOutBtn');
-
-    if (signInBtn) signInBtn.addEventListener('click', signIn);
-    if (signOutBtn) signOutBtn.addEventListener('click', userSignOut);
-
-    // Add notification history button
-    const notificationHistoryBtn = document.createElement('button');
-    notificationHistoryBtn.innerHTML = '<i class="fas fa-bell"></i>';
-    notificationHistoryBtn.classList.add('icon-btn', 'notification-history-btn');
-    notificationHistoryBtn.title = 'Notification History';
-    notificationHistoryBtn.addEventListener('click', showNotificationHistory);
-
-    // Find the sidebar-actions div or create it if it doesn't exist
-    let sidebarActions = sidebar ? sidebar.querySelector('.sidebar-actions') : null;
-    if (!sidebarActions && sidebar) {
-        sidebarActions = document.createElement('div');
-        sidebarActions.classList.add('sidebar-actions');
-        sidebar.appendChild(sidebarActions);
+    // Mobile menu toggle
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (mobileMenuToggle && mobileMenu) {
+        mobileMenuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('open');
+        });
     }
 
-    // Add the notification history button to sidebar-actions
-    if (sidebarActions) {
-        sidebarActions.appendChild(notificationHistoryBtn);
-    } else {
-        console.error('Sidebar actions container not found');
-    }
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', (event) => {
+        if (mobileMenu && mobileMenu.classList.contains('open') && 
+            !mobileMenu.contains(event.target) && 
+            event.target !== mobileMenuToggle) {
+            mobileMenu.classList.remove('open');
+        }
+    });
 
-    // Add or update version info
-    let versionInfo = sidebar ? sidebar.querySelector('.version-info') : null;
-    if (!versionInfo && sidebar) {
-        versionInfo = document.createElement('div');
-        versionInfo.classList.add('version-info');
-        sidebar.appendChild(versionInfo);
-    }
-    if (versionInfo) {
-        versionInfo.innerHTML = `
-            <span class="version-label">Version</span>
-            <span class="version-number">0.5.7</span>
-        `;
-    }
-
-    // Add notification container to the body
-    let notificationContainer = document.getElementById('notification-container');
-    if (!notificationContainer) {
-        notificationContainer = document.createElement('div');
+    // Add notification container to the body if it doesn't exist
+    if (!document.getElementById('notification-container')) {
+        const notificationContainer = document.createElement('div');
         notificationContainer.id = 'notification-container';
         document.body.appendChild(notificationContainer);
+    }
+
+    // Update user profile
+    function updateUserProfile() {
+        const profileContent = user ? `
+                    <img src="${user.avatar}" alt="${user.name}" class="mini-avatar">
+            <span class="mini-username">${user.name}</span>
+        ` : '<span class="mini-profile-signin">Sign In</span>';
+
+        if (userProfileMini) userProfileMini.innerHTML = profileContent;
+        if (mobileUserProfileMini) mobileUserProfileMini.innerHTML = profileContent;
+    }
+
+    updateUserProfile();
+}
+
+function initializeMenu() {
+    const navLinks = document.querySelectorAll('.nav-link, .mobile-nav-link');
+    const notificationsBtn = document.getElementById('notificationsBtn');
+    const mobileNotificationsBtn = document.getElementById('mobileNotificationsBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
+
+    function handleNavLinkClick(e) {
+        e.preventDefault();
+        const section = this.getAttribute('data-section');
+        if (section) {
+            loadSection(section);
+        } else {
+            console.error('No section specified for nav link:', this);
+        }
+    }
+
+    function handleNotifications(e) {
+        e.preventDefault();
+        showNotificationHistory();
+    }
+
+    function handleSettings(e) {
+        e.preventDefault();
+        showSettingsMenu();
+    }
+
+    navLinks.forEach(link => {
+        link.removeEventListener('click', handleNavLinkClick);
+        link.addEventListener('click', handleNavLinkClick);
+    });
+
+    if (notificationsBtn) {
+        notificationsBtn.removeEventListener('click', handleNotifications);
+        notificationsBtn.addEventListener('click', handleNotifications);
+    }
+    if (mobileNotificationsBtn) {
+        mobileNotificationsBtn.removeEventListener('click', handleNotifications);
+        mobileNotificationsBtn.addEventListener('click', handleNotifications);
+    }
+    if (settingsBtn) {
+        settingsBtn.removeEventListener('click', handleSettings);
+        settingsBtn.addEventListener('click', handleSettings);
+    }
+    if (mobileSettingsBtn) {
+        mobileSettingsBtn.removeEventListener('click', handleSettings);
+        mobileSettingsBtn.addEventListener('click', handleSettings);
     }
 }
 
@@ -158,6 +163,24 @@ document.addEventListener("DOMContentLoaded", function() {
     initAuth();
     initDarkMode();
     initializeUI();
+    initializeMenu();
+    console.log("DOM fully loaded");
+
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const closeMobileMenu = document.getElementById('closeMobileMenu');
+
+    if (mobileMenuToggle && mobileMenu) {
+        mobileMenuToggle.addEventListener('click', () => {
+            mobileMenu.classList.add('open');
+        });
+    }
+
+    if (closeMobileMenu) {
+        closeMobileMenu.addEventListener('click', () => {
+            mobileMenu.classList.remove('open');
+        });
+    }
 
     if (!localStorage.getItem('tutorialCompleted')) {
         showWelcomeModal();
@@ -174,31 +197,6 @@ document.addEventListener("DOMContentLoaded", function() {
     loadSection('overview');
 });
 
-function openSidebar() {
-    const sidebar = document.querySelector('.sidebar');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    if (sidebar) {
-        sidebar.classList.add('sidebar-open');
-        sidebar.style.transform = 'translateX(0)';
-        sidebar.style.left = '0';
-        if (sidebarToggle) {
-            sidebarToggle.classList.add('active');
-        }
-    }
-}
-
-function closeSidebar() {
-    const sidebar = document.querySelector('.sidebar');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    if (sidebar) {
-        sidebar.classList.remove('sidebar-open');
-        sidebar.style.transform = 'translateX(-100%)';
-        sidebar.style.left = '-100%';
-        if (sidebarToggle) {
-            sidebarToggle.classList.remove('active');
-        }
-    }
-}
 
 // Initialize user's notification history if it doesn't exist
 if (!user.notificationHistory) {

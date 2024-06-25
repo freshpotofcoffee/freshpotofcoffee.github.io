@@ -86,15 +86,12 @@ function updateMiniProfile() {
 
     if (currentUser && user) {
         miniProfileElement.innerHTML = `
-            <img src="${user.avatar}" alt="Profile Picture" class="mini-profile-pic">
-            <span class="mini-profile-name">${user.name}</span>
-            <button id="miniSignOutBtn" class="action-btn delete-btn">Sign Out</button>
+            <button id="miniSignOutBtn" class="action-btn delete-btn sign-in-out-btn">Sign Out</button>
         `;
         document.getElementById('miniSignOutBtn').addEventListener('click', userSignOut);
     } else {
         miniProfileElement.innerHTML = `
-            <span class="mini-profile-signin">Not signed in</span>
-            <button id="miniSignInBtn" class="action-btn complete-btn">Sign In</button>
+            <button id="miniSignInBtn" class="action-btn complete-btn sign-in-out-btn">Sign In</button>
         `;
         document.getElementById('miniSignInBtn').addEventListener('click', signIn);
     }

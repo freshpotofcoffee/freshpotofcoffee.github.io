@@ -6,6 +6,12 @@ import { loadRewardsSection } from './rewards.js';
 import { loadHowToUseSection } from './howToUse.js';
 
 export function loadSection(sectionName) {
+    console.log(`Loading section: ${sectionName}`);
+    if (!sectionName) {
+        console.error('Invalid section name:', sectionName);
+        return;
+    }
+    
     const mainContent = document.getElementById('mainContent');
     if (!mainContent) {
         console.error('Main content element not found');
@@ -36,7 +42,8 @@ export function loadSection(sectionName) {
             console.error('Unknown section:', sectionName);
     }
 
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.section === sectionName);
+    // Update active states for both desktop and mobile menus
+    document.querySelectorAll('.nav-link, .mobile-nav-link').forEach(link => {
+        link.classList.toggle('active', link.getAttribute('data-section') === sectionName);
     });
 }
