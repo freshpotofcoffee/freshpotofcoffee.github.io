@@ -11,7 +11,7 @@ import { showEditActivityForm, deleteActivity, completeActivity } from './activi
 import { showEditQuestForm, deleteQuest, claimQuestReward } from './quests.js';
 import { showAddMilestoneForm, claimReward } from './rewards.js';
 import { XP_PER_LEVEL, MAX_SKILL_LEVEL, calculateLevel, xpForNextLevel } from './utils.js';
-import { getNotificationHistory, clearNotificationHistory } from './notifications.js';
+import { showNotification, getNotificationHistory, clearNotificationHistory } from './notifications.js';
 
 function initializeDashboard() {
     const navButtons = document.querySelectorAll('.nav-btn');
@@ -287,23 +287,37 @@ function showEditProfileForm() {
 }
 
 function exportData() {
-    const data = {
-        user: user,
+    const dataToExport = {
+        user: {
+            name: user.name,
+            xp: user.xp,
+            level: user.level,
+            achievements: user.achievements,
+            avatar: user.avatar,
+            lastActivityDate: user.lastActivityDate,
+            currentStreak: user.currentStreak,
+            longestStreak: user.longestStreak,
+            notificationHistory: user.notificationHistory
+        },
         skills: skills,
         activities: activities,
         quests: quests,
         rewards: rewards
     };
 
-    const dataStr = JSON.stringify(data);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = 'habit_adventure_data.json';
+    const jsonString = JSON.stringify(dataToExport, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
 
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'habit_adventure_data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log('Data exported successfully');
 }
 
 function importData() {
@@ -321,28 +335,30 @@ function importData() {
             try {
                 const parsedData = JSON.parse(content);
                 
-                // Replace existing data with imported data
-                user = parsedData.user;
-                skills = parsedData.skills;
-                activities = parsedData.activities;
-                quests = parsedData.quests;
-                rewards = parsedData.rewards;
+                // Update existing data with imported data
+                Object.assign(user, parsedData.user);
+                Object.assign(skills, parsedData.skills);
+                activities.length = 0;
+                activities.push(...parsedData.activities);
+                quests.length = 0;
+                quests.push(...parsedData.quests);
+                rewards.length = 0;
+                rewards.push(...parsedData.rewards);
 
                 saveData();
                 updateUserInfoDisplay();
                 loadSection('overview');
 
-                showNotification('Data imported successfully!');
+                showNotification('Data imported successfully!', 'success');
             } catch (error) {
                 console.error('Error parsing imported data:', error);
-                showNotification('Error importing data. Please make sure the file is a valid JSON export from Habit Adventure.');
+                showNotification('Error importing data. Please make sure the file is a valid JSON export from Habit Adventure.', 'error');
             }
         }
     }
 
     input.click();
 }
-
 export function showNotificationHistory() {
     const history = getNotificationHistory();
     
