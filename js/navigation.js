@@ -40,10 +40,14 @@ export function loadSection(sectionName) {
             break;
         default:
             console.error('Unknown section:', sectionName);
+            return; // Exit the function if the section is unknown
     }
 
     // Update active states for both desktop and mobile menus
-    document.querySelectorAll('.nav-link, .mobile-nav-link').forEach(link => {
+    document.querySelectorAll('.nav-link, .mobile-nav-link, .drawer-link').forEach(link => {
         link.classList.toggle('active', link.getAttribute('data-section') === sectionName);
     });
+
+    // Dispatch the custom event
+    window.dispatchEvent(new CustomEvent('sectionloaded', { detail: { section: sectionName } }));
 }

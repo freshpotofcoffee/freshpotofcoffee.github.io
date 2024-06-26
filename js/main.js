@@ -45,22 +45,8 @@ enableIndexedDbPersistence(db).catch((err) => {
 });
 
 function initializeUI() {
-    const notificationsBtn = document.getElementById('notificationsBtn');
-    const mobileNotificationsBtn = document.getElementById('mobileNotificationsBtn');
-    const settingsBtn = document.getElementById('settingsBtn');
-    const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
     const userProfileMini = document.getElementById('userProfileMini');
     const mobileUserProfileMini = document.getElementById('mobileUserProfileMini');
-
-    function showNotifications(e) {
-        e.preventDefault();
-        showNotificationHistory();
-    }
-
-    function showSettings(e) {
-        e.preventDefault();
-        showSettingsMenu();
-    }
 
     const navLinks = document.querySelectorAll('.nav-link, .mobile-nav-link');
     navLinks.forEach(link => {
@@ -111,10 +97,6 @@ function initializeUI() {
 
 function initializeMenu() {
     const navLinks = document.querySelectorAll('.nav-link, .mobile-nav-link');
-    const notificationsBtn = document.getElementById('notificationsBtn');
-    const mobileNotificationsBtn = document.getElementById('mobileNotificationsBtn');
-    const settingsBtn = document.getElementById('settingsBtn');
-    const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
 
     function handleNavLinkClick(e) {
         e.preventDefault();
@@ -126,37 +108,10 @@ function initializeMenu() {
         }
     }
 
-    function handleNotifications(e) {
-        e.preventDefault();
-        showNotificationHistory();
-    }
-
-    function handleSettings(e) {
-        e.preventDefault();
-        showSettingsMenu();
-    }
-
     navLinks.forEach(link => {
         link.removeEventListener('click', handleNavLinkClick);
         link.addEventListener('click', handleNavLinkClick);
     });
-
-    if (notificationsBtn) {
-        notificationsBtn.removeEventListener('click', handleNotifications);
-        notificationsBtn.addEventListener('click', handleNotifications);
-    }
-    if (mobileNotificationsBtn) {
-        mobileNotificationsBtn.removeEventListener('click', handleNotifications);
-        mobileNotificationsBtn.addEventListener('click', handleNotifications);
-    }
-    if (settingsBtn) {
-        settingsBtn.removeEventListener('click', handleSettings);
-        settingsBtn.addEventListener('click', handleSettings);
-    }
-    if (mobileSettingsBtn) {
-        mobileSettingsBtn.removeEventListener('click', handleSettings);
-        mobileSettingsBtn.addEventListener('click', handleSettings);
-    }
 }
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -164,27 +119,113 @@ document.addEventListener("DOMContentLoaded", function() {
     initDarkMode();
     initializeUI();
     initializeMenu();
+    
     console.log("DOM fully loaded");
 
-    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-    const mobileMenu = document.getElementById('mobileMenu');
-    const closeMobileMenu = document.getElementById('closeMobileMenu');
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const closeDrawerBtn = document.getElementById('closeDrawerBtn');
+    const sideDrawer = document.getElementById('sideDrawer');
+    const drawerLinks = document.querySelectorAll('.drawer-link');
+    const notificationsBtn = document.getElementById('notificationsBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const mobileNotificationsBtn = document.getElementById('mobileNotificationsBtn');
+    const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
+    const drawerOverlay = document.getElementById('drawerOverlay');
 
-    if (mobileMenuToggle && mobileMenu) {
-        mobileMenuToggle.addEventListener('click', () => {
-            mobileMenu.classList.add('open');
+    function toggleDrawer() {
+        const isOpen = sideDrawer.classList.toggle('open');
+        drawerOverlay.classList.toggle('open', isOpen);
+        console.log('Toggling drawer. Is open:', isOpen);
+        console.log('Side drawer classes:', sideDrawer.className);
+    }
+
+    function closeDrawer() {
+        sideDrawer.classList.remove('open');
+        drawerOverlay.classList.remove('open');
+        console.log('Closing drawer');
+    }
+
+    if (hamburgerBtn) {
+        hamburgerBtn.addEventListener('click', toggleDrawer);
+        console.log('Hamburger button listener added');
+    } else {
+        console.error('Hamburger button not found');
+    }
+
+    if (closeDrawerBtn) {
+        closeDrawerBtn.addEventListener('click', closeDrawer);
+    } else {
+        console.error('Close drawer button not found');
+    }
+
+    drawerLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeDrawer();
+            const section = this.dataset.section;
+            if (typeof loadSection === 'function') {
+                loadSection(section);
+            } else {
+                console.error('loadSection function not found');
+            }
+        });
+    });
+
+    drawerOverlay.addEventListener('click', closeDrawer);
+
+    if (mobileNotificationsBtn) {
+        mobileNotificationsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof showNotificationHistory === 'function') {
+                showNotificationHistory();
+            } else {
+                console.error('showNotificationHistory function not found');
+            }
         });
     }
 
-    if (closeMobileMenu) {
-        closeMobileMenu.addEventListener('click', () => {
-            mobileMenu.classList.remove('open');
+    if (mobileSettingsBtn) {
+        mobileSettingsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof showSettingsMenu === 'function') {
+                showSettingsMenu();
+            } else {
+                console.error('showSettingsMenu function not found');
+            }
         });
     }
 
-    if (!localStorage.getItem('tutorialCompleted')) {
-        showWelcomeModal();
+    if (notificationsBtn) {
+        notificationsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof showNotificationHistory === 'function') {
+                showNotificationHistory();
+            } else {
+                console.error('showNotificationHistory function not found');
+            }
+        });
     }
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof showSettingsMenu === 'function') {
+                showSettingsMenu();
+            } else {
+                console.error('showSettingsMenu function not found');
+            }
+        });
+    }
+
+    function updateActiveLink(section) {
+        drawerLinks.forEach(link => {
+            link.classList.toggle('active', link.dataset.section === section);
+        });
+    }
+
+    window.addEventListener('sectionloaded', function(e) {
+        updateActiveLink(e.detail.section);
+    });
 
     const helpBtn = document.getElementById('helpBtn');
     if (helpBtn) {
@@ -193,14 +234,7 @@ document.addEventListener("DOMContentLoaded", function() {
         console.error('Help button not found');
     }
 
-    // Initialize with the overview section
     loadSection('overview');
 });
-
-
-// Initialize user's notification history if it doesn't exist
-if (!user.notificationHistory) {
-    user.notificationHistory = [];
-}
 
 export { showNotification };

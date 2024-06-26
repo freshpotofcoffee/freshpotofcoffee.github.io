@@ -403,7 +403,8 @@ h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
     align-items: center;
 }
 
-.mobile-nav {
+.mobile-nav,
+.side-drawer {
     display: none; /* Hide by default */
 }
 
@@ -2362,18 +2363,160 @@ select {
     }
 
     .mobile-nav {
-        display: flex;
-        justify-content: space-around;
+        display: flex !important;
+        justify-content: space-between;
         align-items: center;
         position: fixed;
-        bottom: 0;
+        top: 0;
         left: 0;
         right: 0;
         background-color: var(--primary-color);
-        padding: 0.5rem;
-        box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+        padding: 0.5rem 1rem;
+        z-index: 1000;
+        height: 60px;
     }
 
+    .hamburger-btn {
+        display: block;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        z-index: 1001;
+    }
+
+    .hamburger-btn span {
+        display: block;
+        width: 25px;
+        height: 3px;
+        background-color: var(--text-color);
+        margin: 5px 0;
+        transition: 0.3s;
+    }
+
+    .mobile-logo {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        height: 40px;
+    }
+
+    .mobile-actions {
+        display: flex;
+        gap: 1rem;
+        z-index: 1001;
+    }
+
+    .icon-btn {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-size: 1.2rem;
+        cursor: pointer;
+    }
+
+    .side-drawer {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 280px;
+        height: 100%;
+        background-color: var(--background-color);
+        transition: left 0.3s ease;
+        z-index: 1001;
+        overflow-y: auto;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .side-drawer.open {
+        left: 0;
+    }
+
+    .drawer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background-color: var(--primary-color);
+        height: 60px !important;
+    }
+
+    .drawer-header h2 {
+        color: var(--text-color);
+        margin: 0;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    .drawer-link {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        color: var(--text-color);
+        text-decoration: none;
+        font-size: 1.1rem;
+        transition: background-color 0.3s ease;
+    }
+
+    .drawer-link i {
+        margin-right: 1rem;
+        width: 20px; /* Fixed width for alignment */
+        text-align: center;
+    }
+
+    .drawer-link:hover,
+    .drawer-link.active {
+        background-color: var(--accent-color);
+        color: var(--primary-color);
+    }
+
+    .drawer-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+    }
+
+    .drawer-overlay.open {
+        display: block;
+    }
+
+    .main-header {
+        display: none !important;
+    }
+
+    .activities-controls, .quests-controls {
+        z-index: 999;
+        position: relative;
+        background-color: var(--background-color);
+        padding: 1rem;
+        margin: -1rem -1rem 1rem -1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .activities-controls .search-bar,
+    .activities-controls select,
+    .quests-controls .search-bar,
+    .quests-controls select {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Ensure main content is pushed down */
+    .main-content {
+        padding-top: 70px !important;
+    }
     .mobile-nav-link, .mobile-nav-action {
         color: var(--text-color);
         text-decoration: none;
@@ -2387,7 +2530,7 @@ select {
     }
     
     .mobile-nav-link i, .mobile-nav-action i {
-        font-size: 1.5rem;
+        font-size: 2rem;
         margin-bottom: 0.2rem;
     }
 
@@ -2439,6 +2582,7 @@ select {
     }
 
 }
+
 
 @media (max-width: 480px) {
     .hero-section {

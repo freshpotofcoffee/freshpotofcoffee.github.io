@@ -24,8 +24,8 @@
                 <a href="#" class="nav-link" data-section="skills"><i class="nav-icon fas fa-book-open"></i> Skills</a>
                 <a href="#" class="nav-link" data-section="activities"><i class="nav-icon fas fa-tasks"></i> Activities</a>
                 <a href="#" class="nav-link" data-section="quests"><i class="nav-icon fas fa-map-marked-alt"></i> Quests</a>
-                <a href="#" class="nav-link" data-section="rewards"><i class="nav-icon fas fa-trophy"></i> Rewards</a>
-                <a href="#" class="nav-link" data-section="howToUse"><i class="nav-icon fas fa-question"></i> Guide</a>
+                <a href="#" class="nav-link" data-section="rewards"><i class="nav-icon fas fa-trophy"></i> Milestones</a>
+                <a href="#" class="nav-link" data-section="howToUse"><i class="nav-icon fas fa-info-circle"></i> Guide</a>
             </nav>
             <div class="user-actions">
                 <button id="notificationsBtn" class="icon-btn" title="Notifications"><i class="fas fa-bell"></i></button>
@@ -41,7 +41,51 @@
         </section>
     </main>
 
-    <nav class="mobile-nav">
+
+    <div id="drawerOverlay" class="drawer-overlay"></div>
+    <nav id="mobileNav" class="mobile-nav">
+        <button id="hamburgerBtn" class="hamburger-btn" aria-label="Open menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <img src="images/habit-adventure-logo.png" alt="Habit Adventure Logo" class="mobile-logo">
+        <div class="mobile-actions">
+            <button id="mobileNotificationsBtn" class="icon-btn" aria-label="Notifications">
+                <i class="fas fa-bell"></i>
+            </button>
+            <button id="mobileSettingsBtn" class="icon-btn" aria-label="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </nav>
+    
+    <div id="sideDrawer" class="side-drawer">
+        <div class="drawer-header">
+            <h2>Menu</h2>
+            <button id="closeDrawerBtn" class="close-btn" aria-label="Close menu">&times;</button>
+        </div>
+        <a href="#" class="drawer-link" data-section="overview">
+            <i class="fas fa-home"></i> Overview
+        </a>
+        <a href="#" class="drawer-link" data-section="skills">
+            <i class="fas fa-book-open"></i> Skills
+        </a>
+        <a href="#" class="drawer-link" data-section="activities">
+            <i class="fas fa-tasks"></i> Activities
+        </a>
+        <a href="#" class="drawer-link" data-section="quests">
+            <i class="fas fa-map-marked-alt"></i> Quests
+        </a>
+        <a href="#" class="drawer-link" data-section="rewards">
+            <i class="fas fa-trophy"></i> Milestones
+        </a>
+        <a href="#" class="drawer-link" data-section="howToUse">
+            <i class="fas fa-info-circle"></i> Guide
+        </a>
+    </div>
+
+    <!-- <nav class="mobile-nav">
         <a href="#" class="mobile-nav-link" data-section="overview"><i class="fas fa-home"></i><span></span></a>
         <a href="#" class="mobile-nav-link" data-section="skills"><i class="fas fa-book-open"></i><span></span></a>
         <a href="#" class="mobile-nav-link" data-section="activities"><i class="fas fa-tasks"></i><span></span></a>
@@ -50,7 +94,9 @@
         <a href="#" class="mobile-nav-link" data-section="howToUse"><i class="fas fa-question"></i><span></span></a>
         <button id="mobileNotificationsBtn" class="mobile-nav-action"><i class="fas fa-bell"></i><span></span></button>
         <button id="mobileSettingsBtn" class="mobile-nav-action"><i class="fas fa-cog"></i><span></span></button>
-    </nav>
+    </nav> -->
+
+
     <script type="module" src="js/main.js"></script>
 
 </body>
